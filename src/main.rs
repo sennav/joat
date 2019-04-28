@@ -9,14 +9,16 @@ extern crate serde;
 use clap::App;
 use clap::ArgMatches;
 use serde_json::value::Value;
+use serde_json::map::Map;
 use std::collections::HashMap;
 use std::env;
-use std::fs;
 use std::string::String;
 use tera::{Context, Tera, Result as TeraResult};
 use yaml_rust::Yaml;
-use serde::ser::Serialize;
-// use std::vec::Vec;
+use reqwest::Response;
+use serde::de::DeserializeOwned;
+use serde::{ Deserialize, Serialize };
+use std::vec::Vec;
 
 fn get_string_from_yaml(yaml: &Yaml) -> String {
     match yaml.clone().into_string() {
@@ -87,7 +89,8 @@ fn object(value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
     Ok(value.unwrap().is_object())
 }
 
-fn get_compiled_template_with_context<V: Serialize>(template: &String, context_hashes: &HashMap<String, HashMap<String, V>>) -> String {
+fn get_compiled_template_with_context<T>(template: &String, context_hashes: &HashMap<String, T>) -> String
+    where T: DeserializeOwned, T:Serialize {
     let mut context = Context::new();
     for (key, value) in context_hashes.iter() {
         context.insert(&key, &value);
@@ -130,25 +133,30 @@ fn get_compiled_template_str(template: &String) -> String {
     return result;
 }
 
-fn get_env_hash() -> HashMap<String, Value> {
-    let mut env_vars = HashMap::new();
+fn get_env_hash() -> Value {
+    let mut env_vars = Map::new();
     for (key, value) in env::vars() {
         let v: Value = value.into();
         env_vars.insert(key, v);
     }
-    return env_vars;
+    return Value::from(env_vars);
 }
 
-fn get_resource(endpoint: &String, headers: &HashMap<String, String>) -> Result<HashMap<String, Value>, reqwest::Error> {
+fn get_resource(endpoint: &String, headers: &HashMap<String, String>) -> Response {
     let client = reqwest::Client::new();
-    println!("Endpoint {:?}", endpoint);
     let mut client_get = client.get(endpoint);
     for (name, value) in headers.iter() {
         client_get = client_get.header(&name[..], &value[..]);
     }
-    let mut result = client_get.send()?;
-    println!("RESULT {:?}", result);
-    return result.json();
+    let response = match client_get.send() {
+        Ok(t) => t,
+        Err(e) => {
+            println!("Could not get response for endpoint {}", endpoint);
+            println!("Error: {}", e);
+            ::std::process::exit(1);
+        }
+    };
+    return response;
 }
 
 fn get_complete_endpoint(base_endpoint: &Yaml, path_yaml: &Yaml) -> String {
@@ -158,23 +166,29 @@ fn get_complete_endpoint(base_endpoint: &Yaml, path_yaml: &Yaml) -> String {
     return endpoint;
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+enum JsonTypes {
+    Vec(Vec<Value>),
+    Hash(HashMap<String, Value>),
+}
+
 fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = get_subcommand_from_yaml(cmd_name, yaml);
     let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
     let parsed_endpoint = get_compiled_template_str(&raw_endpoint);
     let headers = get_hash_from_yaml(&yaml["headers"]);
-    let result = match get_resource(&parsed_endpoint, &headers) {
-        Ok(t) => t,
+    let mut response = get_resource(&parsed_endpoint, &headers);
+    let result: Value = match response.json() {
+        Ok(r) => r,
         Err(e) => {
-            println!("Fail to get_resource {:?}", e);
+            println!("Could not convert response {:?} to json", response);
+            println!("Error {:?}", e);
             ::std::process::exit(1);
         },
     };
     let mut api_results_context = HashMap::new();
     api_results_context.insert(String::from("api_results"), result);
     api_results_context.insert(String::from("env"), get_env_hash());
-    // let template = fs::read_to_string("debug")
-    //     .expect("Something went wrong reading the file");
     print!("{}", get_compiled_template_with_context(&String::from("debug"), &api_results_context));
 }
 
