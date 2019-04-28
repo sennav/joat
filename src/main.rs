@@ -130,13 +130,24 @@ fn get_compiled_template_str(template: &String) -> String {
     return result;
 }
 
+fn get_env_hash() -> HashMap<String, Value> {
+    let mut env_vars = HashMap::new();
+    for (key, value) in env::vars() {
+        let v: Value = value.into();
+        env_vars.insert(key, v);
+    }
+    return env_vars;
+}
+
 fn get_resource(endpoint: &String, headers: &HashMap<String, String>) -> Result<HashMap<String, Value>, reqwest::Error> {
     let client = reqwest::Client::new();
+    println!("Endpoint {:?}", endpoint);
     let mut client_get = client.get(endpoint);
     for (name, value) in headers.iter() {
         client_get = client_get.header(&name[..], &value[..]);
     }
     let mut result = client_get.send()?;
+    println!("RESULT {:?}", result);
     return result.json();
 }
 
@@ -159,11 +170,12 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
             ::std::process::exit(1);
         },
     };
-    let mut dummy_hash = HashMap::new();
-    dummy_hash.insert(String::from("api_results"), result);
+    let mut api_results_context = HashMap::new();
+    api_results_context.insert(String::from("api_results"), result);
+    api_results_context.insert(String::from("env"), get_env_hash());
     // let template = fs::read_to_string("debug")
     //     .expect("Something went wrong reading the file");
-    print!("{}", get_compiled_template_with_context(&String::from("debug"), &dummy_hash));
+    print!("{}", get_compiled_template_with_context(&String::from("debug"), &api_results_context));
 }
 
 fn main() {

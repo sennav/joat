@@ -17,9 +17,7 @@ args:
         multiple: true
         help: Sets the level of verbosity
 subcommands:
-    - test:
-        endpoint: http://ip.jsontest.com/
-        method: GET
     - project:
-        method: GET
         path: /projects/{{env.PROJECT_ID}}
+    - issues:
+        path: /projects/{{env.PROJECT_ID}}/issues
