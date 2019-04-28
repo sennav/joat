@@ -3,6 +3,8 @@ version: "0.1.0"
 author: Vinicius <senna.vmd@gmail.com>
 about: Builts CLI binaries for HTTP APIs
 base_endpoint: https://gitlab.com/api/v4
+headers:
+    Private-Token: "{{env.GITLAB_TOKEN}}"
 args:
     - config:
         short: c
@@ -19,7 +21,5 @@ subcommands:
         endpoint: http://ip.jsontest.com/
         method: GET
     - project:
-        headers:
-            Private-Token: "{{env.GITLAB_TOKEN}}"
-        path: /projects/{{env.PROJECT_ID}}
         method: GET
+        path: /projects/{{env.PROJECT_ID}}

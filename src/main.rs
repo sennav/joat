@@ -84,7 +84,6 @@ fn get_compiled_template_str_from_yaml(template_yaml_str: &Yaml) -> String {
 
 // Custom function based on tera
 fn object(value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
-    // println!("Object value {:?}", value.unwrap().is_object());
     Ok(value.unwrap().is_object())
 }
 
@@ -152,7 +151,7 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = get_subcommand_from_yaml(cmd_name, yaml);
     let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
     let parsed_endpoint = get_compiled_template_str(&raw_endpoint);
-    let headers = get_hash_from_yaml(&subcmd_yaml["headers"]);
+    let headers = get_hash_from_yaml(&yaml["headers"]);
     let result = match get_resource(&parsed_endpoint, &headers) {
         Ok(t) => t,
         Err(e) => {
