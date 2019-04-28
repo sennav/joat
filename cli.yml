@@ -1,5 +1,5 @@
 name: http-cli-factory
-version: "0.1.0"
+version: "0.0.1"
 author: Vinicius <senna.vmd@gmail.com>
 about: Builts CLI binaries for HTTP APIs
 base_endpoint: https://gitlab.com/api/v4

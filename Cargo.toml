@@ -1,6 +1,6 @@
 [package]
 name = "http-cli-factory"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Vinicius <senna.vmd@gmail.com>"]
 edition = "2018"
 
