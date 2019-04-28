@@ -1,0 +1,2 @@
+{%- import "macros" as macros -%}
+{{ macros::debug_print(name="api_results", value=api_results) }}

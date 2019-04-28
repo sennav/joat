@@ -1,0 +1,9 @@
+{%- macro debug_print(name, value) -%}
+{% if value is object -%}
+{%- for key, inner_value in value -%}
+{{ self::debug_print(name=name ~ "." ~ key, value=inner_value) }}
+{%- endfor -%}
+{% else -%}
+{{ name }} = "{{ value }}"
+{% endif -%}
+{%- endmacro debug_print -%}
