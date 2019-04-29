@@ -17,7 +17,7 @@ use tera::{Context, Tera, Result as TeraResult};
 use yaml_rust::Yaml;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
-use serde::{ Deserialize, Serialize };
+use serde::Serialize;
 use std::vec::Vec;
 
 fn get_string_from_yaml(yaml: &Yaml) -> String {
@@ -166,16 +166,49 @@ fn get_complete_endpoint(base_endpoint: &Yaml, path_yaml: &Yaml) -> String {
     return endpoint;
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-enum JsonTypes {
-    Vec(Vec<Value>),
-    Hash(HashMap<String, Value>),
+fn get_param_split(param: String) -> (String, String) {
+    let mut parts = param.split("=");
+    if parts.clone().count() != 2 {
+        println!("Params should be formatted as foo=bar");
+        ::std::process::exit(1);
+    }
+    let raw_key = &String::from(parts.next().unwrap());
+    let raw_value = &String::from(parts.next().unwrap());
+    let key = get_compiled_template_str(raw_key);
+    let value = get_compiled_template_str(raw_value);
+    return (key, value);
+}
+
+fn stringify(query: Vec<(String, String)>) -> String {
+    query.iter().fold(String::new(), |acc, tuple| {
+        acc + &tuple.0 + "=" + &tuple.1 + "&"
+    })
+}
+
+fn get_params(args: &ArgMatches) -> String {
+    let mut param_vec = Vec::new();
+    let params = match args.values_of("param") {
+        Some(t) => t,
+        None => {
+            return String::from("");
+        },
+    };
+    for p in params {
+        let param = String::from(p);
+        let splitted_param = get_param_split(param);
+        param_vec.push(splitted_param);
+    }
+    return stringify(param_vec);
 }
 
 fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = get_subcommand_from_yaml(cmd_name, yaml);
     let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
-    let parsed_endpoint = get_compiled_template_str(&raw_endpoint);
+    let params = get_params(args);
+    let mut parsed_endpoint = get_compiled_template_str(&raw_endpoint);
+    if (params.len() > 0) {
+        parsed_endpoint = format!("{}?{}", parsed_endpoint, params);
+    }
     let headers = get_hash_from_yaml(&yaml["headers"]);
     let mut response = get_resource(&parsed_endpoint, &headers);
     let result: Value = match response.json() {
@@ -197,8 +230,8 @@ fn main() {
     let yaml = load_yaml!("../cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    // let config = matches.value_of("config");
-    // println!("Value for config: {:?}", config);
+    // let param = matches.value_of("param");
+    // println!("Value for param: {:?}", param);
 
     match matches.subcommand() {
         (name, sub_cmd_option) => {

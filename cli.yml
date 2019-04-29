@@ -20,6 +20,20 @@ subcommands:
     - project:
         path: /projects/{{env.PROJECT_ID}}
     - issues:
+        args:
+            - param:
+                short: p
+                help: query params
+                long: param
+                takes_value: true
+                multiple: true
         path: /projects/{{env.PROJECT_ID}}/issues
     - boards:
         path: /projects/{{env.PROJECT_ID}}/boards
+        args:
+            - param:
+                short: p
+                help: query params
+                long: param
+                takes_value: true
+                multiple: true
