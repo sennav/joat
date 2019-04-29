@@ -3,6 +3,10 @@
 {%- for key, inner_value in value -%}
 {{ self::debug_print(name=name ~ "." ~ key, value=inner_value) }}
 {%- endfor -%}
+{% elif value is iterable -%}
+{%- for inner_value in value -%}
+{{ self::debug_print(name=name ~ "[" ~ loop.index0 ~ "]", value=inner_value) }}
+{%- endfor -%}
 {% else -%}
 {{ name }} = "{{ value }}"
 {% endif -%}
