@@ -21,3 +21,5 @@ subcommands:
         path: /projects/{{env.PROJECT_ID}}
     - issues:
         path: /projects/{{env.PROJECT_ID}}/issues
+    - boards:
+        path: /projects/{{env.PROJECT_ID}}/boards
