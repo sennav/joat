@@ -24,6 +24,7 @@ subcommands:
                 help: Id of the issue to show
                 required: true
                 index: 1
+        template: issue
     - project:
         path: /projects/{{env.PROJECT_ID}}
     - issues:

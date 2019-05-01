@@ -89,7 +89,7 @@ fn object(value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
     Ok(value.unwrap().is_object())
 }
 
-fn get_compiled_template_with_context<T>(template: &String, context_hashes: &HashMap<String, T>) -> String
+fn get_compiled_template_with_context<T>(template: String, context_hashes: HashMap<String, T>) -> String
     where T: DeserializeOwned, T:Serialize {
     let mut context = Context::new();
     for (key, value) in context_hashes.iter() {
@@ -258,7 +258,14 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let mut response_context = HashMap::new();
     response_context.insert(String::from("response"), result);
     response_context.insert(String::from("env"), get_env_hash());
-    print!("{}", get_compiled_template_with_context(&String::from("debug"), &response_context));
+    let subcmd_hash = subcmd_yaml.clone().into_hash().unwrap();
+    let mut template: String;
+    if subcmd_hash.contains_key(&Yaml::from_str("template")) {
+        template = subcmd_yaml["template"].clone().into_string().unwrap();
+    } else {
+        template = String::from("debug")
+    }
+    print!("{}", get_compiled_template_with_context(template, response_context));
 }
 
 fn main() {

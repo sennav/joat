@@ -1,0 +1,8 @@
+{%- import "macros" as macros -%}
+Issue: #{{ response.iid }}
+Title: {{ response.title }}
+Assignee: {{ response.assignee }}
+Labels: {{ response.labels | join(sep=", ")}}
+
+Description:
+{{ response.description }}
