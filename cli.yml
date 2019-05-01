@@ -17,6 +17,13 @@ args:
         multiple: true
         help: Sets the level of verbosity
 subcommands:
+    - show:
+        path: /projects/{{env.PROJECT_ID}}/issues/{{args.ISSUE_ID}}
+        args:
+            - ISSUE_ID:
+                help: Id of the issue to show
+                required: true
+                index: 1
     - project:
         path: /projects/{{env.PROJECT_ID}}
     - issues:

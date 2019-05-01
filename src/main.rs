@@ -133,6 +133,27 @@ fn get_compiled_template_str(template: &String) -> String {
     return result;
 }
 
+fn get_compiled_template_str_with_context(template: &String, to_context: HashMap<String, String>) -> String {
+    let mut env_vars = HashMap::new();
+    for (key, value) in env::vars() {
+        env_vars.insert(key, value);
+    }
+
+    let mut context = Context::new();
+    context.insert("env", &env_vars);
+    context.insert("args", &to_context);
+
+    let result = match Tera::one_off(&template, &context, false) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("Could not compile template {:?}", template);
+            println!("Error: {}", e);
+            ::std::process::exit(1);
+        }
+    };
+    return result;
+}
+
 fn get_env_hash() -> Value {
     let mut env_vars = Map::new();
     for (key, value) in env::vars() {
@@ -201,12 +222,27 @@ fn get_params(args: &ArgMatches) -> String {
     return stringify(param_vec);
 }
 
+fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> HashMap<String, String> {
+    let mut args_context = HashMap::new();
+    for arg in subcmd_yaml["args"].clone().into_iter() {
+        for a in arg.into_hash().unwrap().keys() {
+            let key = a.clone().into_string().unwrap();
+            if args.is_present(&key) {
+                let value = args.value_of(&key).unwrap_or("");
+                args_context.insert(key, String::from(value));
+            }
+        }
+    }
+    return args_context;
+}
+
 fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = get_subcommand_from_yaml(cmd_name, yaml);
     let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
     let params = get_params(args);
-    let mut parsed_endpoint = get_compiled_template_str(&raw_endpoint);
-    if (params.len() > 0) {
+    let args = get_args_context(&args, &subcmd_yaml);
+    let mut parsed_endpoint = get_compiled_template_str_with_context(&raw_endpoint, args);
+    if params.len() > 0 {
         parsed_endpoint = format!("{}?{}", parsed_endpoint, params);
     }
     let headers = get_hash_from_yaml(&yaml["headers"]);
@@ -219,10 +255,10 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
             ::std::process::exit(1);
         },
     };
-    let mut api_results_context = HashMap::new();
-    api_results_context.insert(String::from("api_results"), result);
-    api_results_context.insert(String::from("env"), get_env_hash());
-    print!("{}", get_compiled_template_with_context(&String::from("debug"), &api_results_context));
+    let mut response_context = HashMap::new();
+    response_context.insert(String::from("response"), result);
+    response_context.insert(String::from("env"), get_env_hash());
+    print!("{}", get_compiled_template_with_context(&String::from("debug"), &response_context));
 }
 
 fn main() {
