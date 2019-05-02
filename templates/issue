@@ -2,6 +2,7 @@
 Issue: #{{ response.iid }}
 Title: {{ response.title }}
 Assignee: {{ response.assignee }}
+State: {{ response.state }}
 Labels: {{ response.labels | join(sep=", ")}}
 
 Description:

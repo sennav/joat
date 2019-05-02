@@ -3,11 +3,10 @@ use std::collections::HashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
-use yaml_rust::Yaml;
 use tera::{Context, Tera, Result as TeraResult};
 
 // Custom function based on tera
-fn object(value: Option<Value>, params: Vec<Value>) -> TeraResult<bool> {
+fn object(value: Option<Value>, _params: Vec<Value>) -> TeraResult<bool> {
     Ok(value.unwrap().is_object())
 }
 
@@ -17,17 +16,6 @@ fn get_env_hash() -> HashMap<String, String> {
         env_vars.insert(key, value);
     }
     return env_vars;
-}
-
-pub fn get_compiled_template_str_from_yaml(template_yaml_str: &Yaml) -> String {
-    let template_str = match template_yaml_str.clone().into_string() {
-        Some(t) => t,
-        None => {
-            println!("Failed to convert {:?} to string", template_yaml_str);
-            ::std::process::exit(1); 
-        },
-    };
-    return get_compiled_template_str(&template_str);
 }
 
 pub fn get_compiled_template_str(template: &String) -> String {
@@ -45,7 +33,7 @@ pub fn get_compiled_template_str(template: &String) -> String {
     return result;
 }
 
-pub fn get_compiled_template_str_with_context(template: &String, to_context: HashMap<String, String>) -> String {
+pub fn get_compiled_template_str_with_context(template: &String, to_context: &HashMap<String, String>) -> String {
     let mut context = Context::new();
     context.insert("env", &get_env_hash());
     context.insert("args", &to_context);

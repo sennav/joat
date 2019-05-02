@@ -12,7 +12,7 @@ pub fn get_string_from_yaml(yaml: &Yaml) -> String {
     }
 }
 
-pub fn get_hash_from_yaml(yaml: &Yaml) -> HashMap<String, String> {
+pub fn get_hash_from_yaml(yaml: &Yaml, arg_context: &HashMap<String, String>) -> HashMap<String, String> {
     let yaml_btree = match yaml.clone().into_hash() {
         Some(t) => t,
         None => {
@@ -23,7 +23,8 @@ pub fn get_hash_from_yaml(yaml: &Yaml) -> HashMap<String, String> {
     let mut yaml_hash = HashMap::new();
     for (key, value) in yaml_btree.iter() {
         let str_key = get_string_from_yaml(key);
-        let parsed_value = template::get_compiled_template_str_from_yaml(value);
+        let value_str = get_string_from_yaml(value);
+        let parsed_value = template::get_compiled_template_str_with_context(&value_str, arg_context);
         yaml_hash.insert(str_key, parsed_value);
     };
     return yaml_hash;

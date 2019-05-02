@@ -36,6 +36,22 @@ subcommands:
                 takes_value: true
                 multiple: true
         path: /projects/{{env.PROJECT_ID}}/issues
+    - move:
+        template: issue
+        args:
+            - ISSUE_ID:
+                help: Id of the issue to move
+                required: true
+                index: 1
+            - BOARD:
+                help: Board to move to (label name)
+                required: true
+                index: 2
+        path: /projects/{{env.PROJECT_ID}}/issues/{{args.ISSUE_ID}}
+        method: PUT
+        body:
+            labels: "{{ args.BOARD }}"
+            state_event: "{%- if args.BOARD == 'Closed' -%}close{%- else -%}reopen{%- endif -%}"
     - boards:
         path: /projects/{{env.PROJECT_ID}}/boards
         args:
