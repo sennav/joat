@@ -11,6 +11,8 @@ use clap::ArgMatches;
 use serde_json::value::Value;
 use std::collections::HashMap;
 use yaml_rust::Yaml;
+use std::process::Command;
+use std::io::{self, Write};
 
 mod template;
 mod http;
@@ -30,8 +32,26 @@ fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> HashMap<String, St
     return args_context;
 }
 
-fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
-    let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
+fn execute_script(args: &ArgMatches, subcmd_yaml: &Yaml) {
+    let args_context = get_args_context(&args, &subcmd_yaml);
+    let script_string = subcmd_yaml["script"].clone().into_string()
+        .expect("Could not convert script to string");
+    let script = template::get_compiled_template_str_with_context(
+        &script_string,
+        &args_context)
+        .expect(format!("Could not parse script template {:?}", script_string).as_str());
+    let output = Command::new("sh")
+            .arg("-c")
+            .arg(script)
+            .output()
+            .expect("failed to execute script");
+    io::stdout().write_all(&output.stdout).unwrap();
+    io::stderr().write_all(&output.stderr).unwrap();
+
+    assert!(output.status.success());
+}
+
+fn execute_request(cmd_name: &str, args: &ArgMatches, yaml: &Yaml, subcmd_yaml: &Yaml) {
     let subcmd_hash = subcmd_yaml.clone().into_hash().expect("Could not hash subcmd yaml");
     let mut http_method: String;
     if subcmd_hash.contains_key(&Yaml::from_str("method")) {
@@ -61,6 +81,16 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     }
     let mut template_parser = template::Template::new(); // TODO remove mut
     print!("{}", template_parser.get_compiled_template_with_context(template, response_context));
+}
+
+fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
+    let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
+    let script = &subcmd_yaml["script"];
+    if !script.is_badvalue() {
+        execute_script(&args, &subcmd_yaml);
+    } else {
+        execute_request(&cmd_name, &args, &yaml, &subcmd_yaml);
+    }
 }
 
 fn main() {

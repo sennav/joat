@@ -76,7 +76,7 @@ subcommands:
         method: PUT
         args:
             - ISSUE_ID:
-                help: Id of the issue to move
+                help: Id of the issue to edit
                 required: true
                 index: 1
             - labels:
@@ -110,3 +110,12 @@ subcommands:
                 long: param
                 takes_value: true
                 multiple: true
+    - script:
+        about: Test runnning a script
+        args:
+            - ISSUE_ID:
+                help: Id of the issue
+                required: true
+                index: 1
+        script:
+            gitlab show {{ args.ISSUE_ID }}
