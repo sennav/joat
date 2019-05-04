@@ -68,23 +68,23 @@ subcommands:
             title: "{{ args.TITLE }}"
             description: "{%- if args.DESCRIPTION -%}}args.DESCRIPTION{%- endif -%}"
             labels: "{%- if args.LABELS -%}{{args.LABELS}}{%- endif -%}"
-    - move:
-        about: tag an issue with a label (as it was intended to move tickets on the board the name is move)
+    - tag:
+        about: tag an issue with labels (as it was intended to move tickets on the board the name is move)
         template: issue.j2
         args:
             - ISSUE_ID:
                 help: Id of the issue to move
                 required: true
                 index: 1
-            - BOARD:
-                help: Board to move to (label name)
+            - LABELS:
+                help: Label names (comma separated)
                 required: true
                 index: 2
         path: /projects/{{env.PROJECT_ID}}/issues/{{args.ISSUE_ID}}
         method: PUT
         body:
-            labels: "{{ args.BOARD }}"
-            state_event: "{%- if args.BOARD == 'Closed' -%}close{%- else -%}reopen{%- endif -%}"
+            labels: "{{ args.LABELS }}"
+            state_event: "{%- if args.LABELS == 'Closed' -%}close{%- else -%}reopen{%- endif -%}"
     - boards:
         about: list boards
         path: /projects/{{env.PROJECT_ID}}/boards
