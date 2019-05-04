@@ -16,6 +16,9 @@ pub fn get_hash_from_yaml(yaml: &Yaml, arg_context: &HashMap<String, String>) ->
     let yaml_btree = match yaml.clone().into_hash() {
         Some(t) => t,
         None => {
+            if yaml.is_badvalue() {
+                return HashMap::new();
+            }
             println!("Failed to convert to hash map, exiting.");
             ::std::process::exit(1);
         }
