@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
-use tera::{Context, Tera, Result as TeraResult};
+use tera::{Context, Tera, Error, Result as TeraResult};
 
 // Custom function based on tera
 fn object(value: Option<Value>, _params: Vec<Value>) -> TeraResult<bool> {
@@ -33,20 +33,13 @@ pub fn get_compiled_template_str(template: &String) -> String {
     return result;
 }
 
-pub fn get_compiled_template_str_with_context(template: &String, to_context: &HashMap<String, String>) -> String {
+pub fn get_compiled_template_str_with_context(template: &String, to_context: &HashMap<String, String>) -> Result<String, Error> {
     let mut context = Context::new();
     context.insert("env", &get_env_hash());
     context.insert("args", &to_context);
 
-    let result = match Tera::one_off(&template, &context, false) {
-        Ok(s) => s,
-        Err(e) => {
-            println!("Could not compile template {:?}", template);
-            println!("Error: {}", e);
-            ::std::process::exit(1);
-        }
-    };
-    return result;
+    let result = Tera::one_off(&template, &context, false)?;
+    return Ok(result);
 }
 
 pub struct Template {

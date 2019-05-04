@@ -27,7 +27,10 @@ pub fn get_hash_from_yaml(yaml: &Yaml, arg_context: &HashMap<String, String>) ->
     for (key, value) in yaml_btree.iter() {
         let str_key = get_string_from_yaml(key);
         let value_str = get_string_from_yaml(value);
-        let parsed_value = template::get_compiled_template_str_with_context(&value_str, arg_context);
+        let parsed_value = match template::get_compiled_template_str_with_context(&value_str, arg_context) {
+            Ok(t) => t,
+            Err(_e) => continue,
+        };
         yaml_hash.insert(str_key, parsed_value);
     };
     return yaml_hash;

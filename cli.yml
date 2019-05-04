@@ -26,9 +26,10 @@ subcommands:
                 required: true
                 index: 1
             - template:
+                short: t
+                long: template
                 help: Use a different template
                 required: false
-                short: t
                 takes_value: true
         template: issue.j2
     - project:
@@ -36,17 +37,19 @@ subcommands:
         path: /projects/{{env.PROJECT_ID}}
     - issues:
         about: list issues
+        path: /projects/{{env.PROJECT_ID}}/issues
         args:
             - param:
                 short: p
+                long: param
                 help: query params
                 long: param
                 takes_value: true
                 multiple: true
-        path: /projects/{{env.PROJECT_ID}}/issues
     - newissue:
         about: create an issue
-        template: issue.j2
+        path: /projects/{{env.PROJECT_ID}}/issues
+        method: POST
         args:
             - TITLE:
                 help: Issue title
@@ -62,29 +65,41 @@ subcommands:
                 long: labels
                 help: labels, comma separated values
                 takes_value: true
-        path: /projects/{{env.PROJECT_ID}}/issues
-        method: POST
         body:
             title: "{{ args.TITLE }}"
             description: "{%- if args.DESCRIPTION -%}}args.DESCRIPTION{%- endif -%}"
             labels: "{%- if args.LABELS -%}{{args.LABELS}}{%- endif -%}"
-    - tag:
-        about: tag an issue with labels (as it was intended to move tickets on the board the name is move)
         template: issue.j2
+    - edit:
+        about: edit an issue
+        path: /projects/{{env.PROJECT_ID}}/issues/{{args.ISSUE_ID}}
+        method: PUT
         args:
             - ISSUE_ID:
                 help: Id of the issue to move
                 required: true
                 index: 1
-            - LABELS:
-                help: Label names (comma separated)
-                required: true
-                index: 2
-        path: /projects/{{env.PROJECT_ID}}/issues/{{args.ISSUE_ID}}
-        method: PUT
+            - labels:
+                short: l
+                long: labels
+                help: labels, comma separated values
+                takes_value: true
+            - description:
+                short: d
+                long: description
+                help: Issue description
+                takes_value: true
+            - title:
+                short: t
+                long: title
+                help: Issue title
+                takes_value: true
         body:
-            labels: "{{ args.LABELS }}"
-            state_event: "{%- if args.LABELS == 'Closed' -%}close{%- else -%}reopen{%- endif -%}"
+            description: "{{ args.description }}"
+            title: "{{ args.title }}"
+            labels: "{{ args.labels }}"
+            state_event: "{%- if args.labels == 'Closed' -%}close{%- else -%}reopen{%- endif -%}"
+        template: issue.j2
     - boards:
         about: list boards
         path: /projects/{{env.PROJECT_ID}}/boards
