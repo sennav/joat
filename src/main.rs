@@ -55,7 +55,7 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     if subcmd_hash.contains_key(&Yaml::from_str("template")) {
         template = subcmd_yaml["template"].clone().into_string().unwrap();
     } else {
-        template = String::from("debug")
+        template = String::from("debug.j2")
     }
     let mut template_parser = template::Template::new(); // TODO remove mut
     print!("{}", template_parser.get_compiled_template_with_context(template, response_context));

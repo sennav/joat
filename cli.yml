@@ -24,7 +24,7 @@ subcommands:
                 help: Id of the issue to show
                 required: true
                 index: 1
-        template: issue
+        template: issue.j2
     - project:
         path: /projects/{{env.PROJECT_ID}}
     - issues:
@@ -36,8 +36,31 @@ subcommands:
                 takes_value: true
                 multiple: true
         path: /projects/{{env.PROJECT_ID}}/issues
+    - newissue:
+        template: issue.j2
+        args:
+            - TITLE:
+                help: Issue title
+                required: true
+                index: 1
+            - DESCRIPTION:
+                short: d
+                long: description
+                help: Issue description
+                takes_value: true
+            - LABELS:
+                short: l
+                long: labels
+                help: labels, comma separated values
+                takes_value: true
+        path: /projects/{{env.PROJECT_ID}}/issues
+        method: POST
+        body:
+            title: "{{ args.TITLE }}"
+            description: "{%- if args.DESCRIPTION -%}}args.DESCRIPTION{%- endif -%}"
+            labels: "{%- if args.LABELS -%}{{args.LABELS}}{%- endif -%}"
     - move:
-        template: issue
+        template: issue.j2
         args:
             - ISSUE_ID:
                 help: Id of the issue to move
