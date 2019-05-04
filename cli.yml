@@ -18,16 +18,24 @@ args:
         help: Sets the level of verbosity
 subcommands:
     - show:
+        about: show issue data
         path: /projects/{{env.PROJECT_ID}}/issues/{{args.ISSUE_ID}}
         args:
             - ISSUE_ID:
                 help: Id of the issue to show
                 required: true
                 index: 1
+            - template:
+                help: Use a different template
+                required: false
+                short: t
+                takes_value: true
         template: issue.j2
     - project:
+        about: show project data
         path: /projects/{{env.PROJECT_ID}}
     - issues:
+        about: list issues
         args:
             - param:
                 short: p
@@ -37,6 +45,7 @@ subcommands:
                 multiple: true
         path: /projects/{{env.PROJECT_ID}}/issues
     - newissue:
+        about: create an issue
         template: issue.j2
         args:
             - TITLE:
@@ -60,6 +69,7 @@ subcommands:
             description: "{%- if args.DESCRIPTION -%}}args.DESCRIPTION{%- endif -%}"
             labels: "{%- if args.LABELS -%}{{args.LABELS}}{%- endif -%}"
     - move:
+        about: tag an issue with a label (as it was intended to move tickets on the board the name is move)
         template: issue.j2
         args:
             - ISSUE_ID:
@@ -76,6 +86,7 @@ subcommands:
             labels: "{{ args.BOARD }}"
             state_event: "{%- if args.BOARD == 'Closed' -%}close{%- else -%}reopen{%- endif -%}"
     - boards:
+        about: list boards
         path: /projects/{{env.PROJECT_ID}}/boards
         args:
             - param:

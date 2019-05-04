@@ -52,7 +52,9 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     response_context.insert(String::from("response"), result);
 
     let mut template: String;
-    if subcmd_hash.contains_key(&Yaml::from_str("template")) {
+    if args_context.contains_key("template") {
+        template = args_context["template"].clone();
+    } else if subcmd_hash.contains_key(&Yaml::from_str("template")) {
         template = subcmd_yaml["template"].clone().into_string().unwrap();
     } else {
         template = String::from("debug.j2")
