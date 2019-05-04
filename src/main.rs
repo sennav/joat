@@ -40,7 +40,7 @@ fn execute_script(args: &ArgMatches, subcmd_yaml: &Yaml) {
         &script_string,
         &args_context)
         .expect(format!("Could not parse script template {:?}", script_string).as_str());
-    let output = Command::new("sh")
+    let output = Command::new("bash")
             .arg("-c")
             .arg(script)
             .output()
