@@ -1,5 +1,5 @@
 [package]
-name = "http-cli-factory"
+name = "rest-cli-factory"
 version = "0.0.1"
 authors = ["Vinicius <senna.vmd@gmail.com>"]
 edition = "2018"
