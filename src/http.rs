@@ -50,11 +50,11 @@ fn get_params(args: &ArgMatches) -> String {
     return stringify(param_vec);
 }
 
-pub fn get_endpoint(cmd_name: &str, args: &ArgMatches, args_context: &HashMap<String, String>, yaml: &Yaml) -> String {
+pub fn get_endpoint(cmd_name: &str, args: &ArgMatches, context: &HashMap<String, HashMap<String, String>>, yaml: &Yaml) -> String {
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
     let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
     let params = get_params(args);
-    let mut parsed_endpoint = template::get_compiled_template_str_with_context(&raw_endpoint, &args_context)
+    let mut parsed_endpoint = template::get_compiled_template_str_with_context(&raw_endpoint, &context)
         .expect(format!("Could not parse endpoint {}", raw_endpoint).as_str());
     if params.len() > 0 {
         parsed_endpoint = format!("{}?{}", parsed_endpoint, params);

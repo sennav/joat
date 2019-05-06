@@ -33,10 +33,12 @@ pub fn get_compiled_template_str(template: &String) -> String {
     return result;
 }
 
-pub fn get_compiled_template_str_with_context(template: &String, to_context: &HashMap<String, String>) -> Result<String, Error> {
+pub fn get_compiled_template_str_with_context(template: &String, raw_context: &HashMap<String, HashMap<String, String>>) -> Result<String, Error> {
     let mut context = Context::new();
     context.insert("env", &get_env_hash());
-    context.insert("args", &to_context);
+    for (k, v) in raw_context.iter() {
+        context.insert(k, &v);
+    }
 
     let result = Tera::one_off(&template, &context, false)?;
     return Ok(result);
