@@ -4,7 +4,7 @@ author: Vinicius <senna.vmd@gmail.com>
 about: Builts CLI binaries for REST APIs
 base_endpoint: https://gitlab.com/api/v4
 vars:
-    hello: bananas
+    done_label: "workflow:Done"
 headers:
     Private-Token: "{{env.GITLAB_TOKEN}}"
 args:
@@ -100,7 +100,7 @@ subcommands:
             description: "{{ args.description }}"
             title: "{{ args.title }}"
             labels: "{{ args.labels }}"
-            state_event: "{%- if args.labels == 'Closed' -%}close{%- else -%}reopen{%- endif -%}"
+            state_event: "{%- if args.labels is containing(vars.done_label) -%}close{%- else -%}reopen{%- endif -%}"
         template: issue.j2
     - boards:
         about: list boards
@@ -112,13 +112,44 @@ subcommands:
                 long: param
                 takes_value: true
                 multiple: true
-    - script:
-        about: Test runnning a script
+    - cleanlabels:
+        about: Return the issue's list of labels without workflow labels
         args:
             - ISSUE_ID:
                 help: Id of the issue
                 required: true
                 index: 1
-        script:
+        script: |
+            LABELS=$(gitlab show {{ args.ISSUE_ID }} | grep Labels: | sed 's/Labels:[ ]\{0,\}//')
+            NO_WORKFLOW_LABELS=$(echo $LABELS | sed 's/[ ]\{0,\}workflow:[A-Z a-z]\{1,\}[,]\{0,1\}//g' | sed 's/^[ ]\{1,\}//' | sed 's/[ ]\{0,\}[,]\{0,\}[ ]\{0,\}$//')
+            echo $NO_WORKFLOW_LABELS
+    - code:
+        about: Move issue to code in progress column
+        args:
+            - ISSUE_ID:
+                help: Id of the issue to code
+                required: true
+                index: 1
+        script: |
+            LABELS=$(gitlab cleanlabels {{ args.ISSUE_ID }})
+            if [ -z "$LABELS" ]; then
+                gitlab edit -l "workflow:In progress" {{ args.ISSUE_ID }}
+            else
+                gitlab edit -l "$LABELS,workflow:In progress" {{ args.ISSUE_ID }}
+            fi
             gitlab show {{ args.ISSUE_ID }}
-            echo "Hello {{ vars.hello }}"
+    - done:
+        about: Move ticket to done column
+        args:
+            - ISSUE_ID:
+                help: Id of the issue to move
+                required: true
+                index: 1
+        script: |
+            LABELS=$(gitlab cleanlabels {{ args.ISSUE_ID }})
+            if [ -z "$LABELS" ]; then
+                gitlab edit -l "{{ vars.done_label }}" {{ args.ISSUE_ID }}
+            else
+                gitlab edit -l "$LABELS,{{ vars.done_label }}" {{ args.ISSUE_ID }}
+            fi
+            gitlab show {{ args.ISSUE_ID }}
