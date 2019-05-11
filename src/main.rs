@@ -1,10 +1,11 @@
-#[macro_use]
 extern crate clap;
 extern crate reqwest;
 extern crate serde_json;
 extern crate tera;
 extern crate yaml_rust;
 extern crate serde;
+extern crate regex;
+extern crate dirs;
 
 use clap::App;
 use clap::ArgMatches;
@@ -13,6 +14,8 @@ use std::collections::HashMap;
 use yaml_rust::Yaml;
 use std::process::Command;
 use std::io::{self, Write};
+use std::env;
+use regex::Regex;
 
 mod template;
 mod http;
@@ -116,14 +119,33 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     }
 }
 
-fn main() {
-    let yaml = load_yaml!("../cli.yml");
-    let matches = App::from_yaml(yaml).get_matches();
+fn install(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
+    println!("Install something");
+}
 
+fn format_cmd_name(cmd_name: &String) -> String {
+    let re = Regex::new("[^/]*$").unwrap();
+    String::from(
+        re.find(cmd_name)
+        .expect("Failed to parse main cmd name")
+        .as_str()
+    )
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let config_yaml = yaml::get_yaml_config(format_cmd_name(&args[0]));
+    let matches = App::from_yaml(&config_yaml).get_matches();
     match matches.subcommand() {
         (name, sub_cmd_option) => {
             match sub_cmd_option {
-                Some(sub_cmd) => execute(name, sub_cmd, yaml),
+                Some(sub_cmd) => {
+                    if name == "install" {
+                        install(name, sub_cmd, &config_yaml)
+                    } else {
+                        execute(name, sub_cmd, &config_yaml)
+                    }
+                },
                 _ => ::std::process::exit(1)
             }
         }
