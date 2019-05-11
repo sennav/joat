@@ -92,8 +92,8 @@ fn execute_request(cmd_name: &str, args: &ArgMatches, yaml: &Yaml, subcmd_yaml: 
     let mut template: String;
     if context["args"].contains_key("template") {
         template = context["args"]["template"].clone();
-    } else if subcmd_hash.contains_key(&Yaml::from_str("template")) {
-        template = subcmd_yaml["template"].clone().into_string().unwrap();
+    } else if subcmd_hash.contains_key(&Yaml::from_str("response_template")) {
+        template = subcmd_yaml["response_template"].clone().into_string().unwrap();
     } else {
         template = String::from("debug.j2")
     }
