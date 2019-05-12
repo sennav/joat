@@ -135,7 +135,8 @@ fn format_cmd_name(cmd_name: &String) -> String {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let config_yaml = yaml::get_yaml_config(format_cmd_name(&args[0]));
-    let matches = App::from_yaml(&config_yaml).get_matches();
+    let mut app = App::from_yaml(&config_yaml);
+    let matches = app.clone().get_matches();
     match matches.subcommand() {
         (name, sub_cmd_option) => {
             match sub_cmd_option {
@@ -146,7 +147,11 @@ fn main() {
                         execute(name, sub_cmd, &config_yaml)
                     }
                 },
-                _ => ::std::process::exit(1)
+                _ => {
+                    // Could not find command, just print help
+                    app.print_help().unwrap();
+                    ::std::process::exit(1)
+                }
             }
         }
     }
