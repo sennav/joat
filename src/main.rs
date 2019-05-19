@@ -70,7 +70,7 @@ fn execute_script(context: HashMap<String, HashMap<String,String>>, subcmd_yaml:
     assert!(output.status.success());
 }
 
-fn execute_request(cmd_name: &str, args: &ArgMatches, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
+fn execute_request(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
     let subcmd_hash = subcmd_yaml.clone().into_hash().expect("Could not hash subcmd yaml");
     let mut http_method: String;
     if subcmd_hash.contains_key(&Yaml::from_str("method")) {
@@ -97,11 +97,11 @@ fn execute_request(cmd_name: &str, args: &ArgMatches, yaml: &Yaml, subcmd_yaml: 
     } else {
         template = String::from("debug.j2")
     }
-    let mut template_parser = template::Template::new(); // TODO remove mut
+    let mut template_parser = template::Template::new(app_name); // TODO remove mut
     print!("{}", template_parser.get_compiled_template_with_context(template, response_context));
 }
 
-fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
+fn execute(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
     let script = &subcmd_yaml["script"];
 
@@ -115,7 +115,7 @@ fn execute(cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     if !script.is_badvalue() {
         execute_script(context, &subcmd_yaml);
     } else {
-        execute_request(&cmd_name, &args, &yaml, &subcmd_yaml, context);
+        execute_request(&app_name, &cmd_name, &args, &yaml, &subcmd_yaml, context);
     }
 }
 
@@ -134,7 +134,8 @@ fn format_cmd_name(cmd_name: &String) -> String {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let config_yaml = yaml::get_yaml_config(format_cmd_name(&args[0]));
+    let app_name = format_cmd_name(&args[0]);
+    let config_yaml = yaml::get_yaml_config(&app_name);
     let mut app = App::from_yaml(&config_yaml);
     let matches = app.clone().get_matches();
     match matches.subcommand() {
@@ -144,7 +145,7 @@ fn main() {
                     if name == "install" {
                         install(name, sub_cmd, &config_yaml)
                     } else {
-                        execute(name, sub_cmd, &config_yaml)
+                        execute(&app_name, name, sub_cmd, &config_yaml)
                     }
                 },
                 _ => {

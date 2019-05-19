@@ -79,9 +79,9 @@ fn get_local_config(cmd_name: &String) -> Option<Yaml> {
     }
 }
 
-pub fn get_yaml_config(cmd_name :String) -> Yaml {
-    let home_config = get_home_config(&cmd_name);
-    let local_config = get_local_config(&cmd_name);
+pub fn get_yaml_config(cmd_name: &String) -> Yaml {
+    let home_config = get_home_config(cmd_name);
+    let local_config = get_local_config(cmd_name);
     match (home_config, local_config) {
         (Some(h), Some(l)) => combine_yaml(&h, &l),
         (Some(h), None) => h,

@@ -2,13 +2,7 @@ use std::env;
 use std::collections::HashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde_json::value::Value;
-use tera::{Context, Tera, Error, Result as TeraResult};
-
-// Custom function based on tera
-fn object(value: Option<Value>, _params: Vec<Value>) -> TeraResult<bool> {
-    Ok(value.unwrap().is_object())
-}
+use tera::{Context, Tera, Error };
 
 fn get_env_hash() -> HashMap<String, String> {
     let mut env_vars = HashMap::new();
@@ -22,7 +16,7 @@ pub fn get_compiled_template_str(template: &String) -> String {
     let mut context = Context::new();
     context.insert("env", &get_env_hash());
 
-    let result = match Tera::one_off(&template, &context, false) {
+    let result = match Tera::one_off(&template, context, false) {
         Ok(s) => s,
         Err(e) => {
             println!("Could not compile template {:?}", template);
@@ -40,7 +34,7 @@ pub fn get_compiled_template_str_with_context(template: &String, raw_context: &H
         context.insert(k, &v);
     }
 
-    let result = Tera::one_off(&template, &context, false)?;
+    let result = Tera::one_off(&template, context, false)?;
     return Ok(result);
 }
 
@@ -49,7 +43,7 @@ pub struct Template {
 }
 
 impl Template {
-    pub fn new() -> Template {
+    pub fn new(app_name: &str) -> Template {
         let mut tera = match Tera::new("./templates/*") {
             Ok(t) => t,
             Err(e) => {
@@ -57,7 +51,18 @@ impl Template {
                 ::std::process::exit(1);
             }
         };
-        tera.register_tester("object", object);
+        let home_dir_path = match dirs::home_dir() {
+            Some(h) => h,
+            _ => {
+                println!("Could not find home dir");
+                ::std::process::exit(1);
+            },
+        };
+        let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
+        let home_path_str = String::from(format!("{}/.{}.joat/templates/**", home_dir_str, app_name));
+        let tera_home_templates = Tera::new(home_path_str.as_str())
+            .expect("Could not start Tera");
+        tera.extend(&tera_home_templates).unwrap();
 
         return Template {
             tera,
@@ -72,7 +77,7 @@ impl Template {
         }
         context.insert(&String::from("env"), &get_env_hash());
 
-        let result = match self.tera.render(&template, &context) {
+        let result = match self.tera.render(&template, context) {
             Ok(s) => s,
             Err(e) => {
                 println!("Could not render template {:?}", template);
