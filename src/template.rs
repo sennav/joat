@@ -44,7 +44,7 @@ pub struct Template {
 
 impl Template {
     pub fn new(app_name: &str) -> Template {
-        let mut tera = match Tera::new("./templates/*") {
+        let mut tera = match Tera::new("templates/**") {
             Ok(t) => t,
             Err(e) => {
                 println!("Could not start tera: {}", e);

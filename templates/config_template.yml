@@ -1,0 +1,26 @@
+name: {{args.PROJECT_NAME}}
+version: "0.0.0"
+author: Your Name <your@email.com>
+about: Describe your extension
+base_endpoint: https://jsonplaceholder.typicode.com/
+vars:
+    query_param: q
+subcommands:
+    - todos:
+        about: get dummy todos list
+        path: todos
+    - todo:
+        about: get specific todo
+        path: {% raw %}todos/{{args.TODO_ID}}{% endraw %}
+        args:
+            - TODO_ID:
+                help: Todo id
+                required: true
+    - hello:
+        about: say hello with a script
+        args:
+            - WHAT:
+                help: what or who you want to say hello to
+                required: true
+        script: |
+            {% raw %}echo "Hello {{args.WHAT}}"{% endraw %}

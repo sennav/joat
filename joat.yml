@@ -10,3 +10,11 @@ subcommands:
                 help: Project name
                 required: true
                 index: 1
+    - init:
+        about: create a yaml config file to bootstrap your extension
+        args:
+            - PROJECT_NAME:
+                help: Project name
+                required: true
+                index: 1
+

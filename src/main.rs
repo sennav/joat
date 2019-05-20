@@ -16,6 +16,7 @@ use std::process::Command;
 use std::io::{self, Write};
 use std::env;
 use regex::Regex;
+use std::fs;
 
 mod template;
 mod http;
@@ -101,6 +102,19 @@ fn execute_request(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &
     print!("{}", template_parser.get_compiled_template_with_context(template, response_context));
 }
 
+fn execute_init(context: HashMap<String, HashMap<String, String>>) {
+    let init_template = String::from(include_str!("../templates/config_template.yml"));
+    let yaml_str = template::get_compiled_template_str_with_context(
+        &init_template,
+        &context)
+        .expect("Could not create yaml template");
+    let cmd_name = &context["args"]["PROJECT_NAME"];
+    let filename = format!("{}.yml", cmd_name);
+    fs::write(filename, yaml_str).expect("Unable to write file");
+    println!("Config file {}.yml created", cmd_name);
+    println!("To start testing with your extension create a symlink in your PATH targeting joat binaries with name: {}", cmd_name);
+}
+
 fn execute(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
     let script = &subcmd_yaml["script"];
@@ -110,6 +124,11 @@ fn execute(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let mut context = HashMap::new();
     context.insert(String::from("vars"), vars_context);
     context.insert(String::from("args"), args_context);
+
+    if app_name == "joat" && cmd_name == "init" {
+        execute_init(context);
+        return;
+    }
 
 
     if !script.is_badvalue() {
