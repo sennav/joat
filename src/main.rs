@@ -17,6 +17,7 @@ use std::io::{self, Write};
 use std::env;
 use regex::Regex;
 use std::fs;
+use terminal_size::{Width, Height, terminal_size};
 
 mod template;
 mod http;
@@ -53,6 +54,14 @@ fn get_vars_context(yaml: &Yaml) -> HashMap<String, String> {
     return vars_context;
 }
 
+fn get_terminal_width() -> u16 {
+    let size = terminal_size();
+    if let Some((Width(w), Height(_h))) = size {
+        return w;
+    }
+    return 80;
+}
+
 fn execute_script(context: HashMap<String, HashMap<String,String>>, subcmd_yaml: &Yaml) {
     let script_string = subcmd_yaml["script"].clone().into_string()
         .expect("Could not convert script to string");
@@ -60,9 +69,11 @@ fn execute_script(context: HashMap<String, HashMap<String,String>>, subcmd_yaml:
         &script_string,
         &context)
         .expect(format!("Could not parse script template {:?}", script_string).as_str());
+    let columns = get_terminal_width();
     let output = Command::new("bash")
             .arg("-c")
             .arg(script)
+            .env("COLUMNS", columns.to_string())
             .output()
             .expect("failed to execute script");
     io::stdout().write_all(&output.stdout).unwrap();
