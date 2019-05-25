@@ -1,3 +1,5 @@
+extern crate globwalk;
+
 use std::env;
 use std::collections::HashMap;
 use serde::Serialize;
@@ -40,10 +42,12 @@ pub fn get_compiled_template_str_with_context(template: &String, raw_context: &H
 
 pub struct Template {
     tera: Tera,
+    template_path: HashMap<String, String>,
 }
 
 impl Template {
     pub fn new(app_name: &str) -> Template {
+        let mut template_path = HashMap::new();
         let mut tera = match Tera::new("templates/**") {
             Ok(t) => t,
             Err(e) => {
@@ -51,6 +55,12 @@ impl Template {
                 ::std::process::exit(1);
             }
         };
+        for template in globwalk::glob("templates/**").unwrap() {
+            if let Ok(template) = template {
+                let filename = String::from(template.file_name().to_str().unwrap());
+                template_path.insert(filename, String::from("./templates/"));
+            }
+        }
         let home_dir_path = match dirs::home_dir() {
             Some(h) => h,
             _ => {
@@ -64,8 +74,16 @@ impl Template {
             .expect("Could not start Tera");
         tera.extend(&tera_home_templates).unwrap();
 
+        for template in globwalk::glob(home_path_str.clone()).unwrap() {
+            if let Ok(template) = template {
+                let filename = String::from(template.file_name().to_str().unwrap());
+                template_path.insert(filename, home_path_str.clone());
+            }
+        }
+
         return Template {
             tera,
+            template_path,
         }
     }
 
@@ -76,6 +94,14 @@ impl Template {
             context.insert(&key, &value);
         }
         context.insert(&String::from("env"), &get_env_hash());
+
+        let mut template_vars = HashMap::new();
+        template_vars.insert(String::from("name"), &template);
+        match self.template_path.get(&template) {
+            Some(p) => { template_vars.insert(String::from("path"), p); },
+            None => ()
+        }
+        context.insert(&String::from("template"), &template_vars);
 
         let result = match self.tera.render(&template, context) {
             Ok(s) => s,
