@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use yaml_rust::Yaml;
 use std::vec::Vec;
 use clap::ArgMatches;
+use serde_json::value::Value;
 
 use crate::yaml;
 use crate::template;
@@ -81,7 +82,7 @@ fn get_method(method: &String) -> Method {
     return Method::GET;
 }
 
-pub fn request(method: &String, endpoint: &String, headers: &HashMap<String, String>, body: &HashMap<String, String>) -> Response {
+pub fn request(method: &String, endpoint: &String, headers: &HashMap<String, String>, body: &HashMap<String, Value>) -> Response {
     let client = reqwest::Client::new();
     let reqwest_method = get_method(&method);
     let mut client_get = client.request(reqwest_method, endpoint);

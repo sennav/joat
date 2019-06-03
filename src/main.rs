@@ -10,6 +10,7 @@ extern crate dirs;
 use clap::App;
 use clap::ArgMatches;
 use serde_json::value::Value;
+use serde_json::Number;
 use std::collections::HashMap;
 use yaml_rust::Yaml;
 use std::process::Command;
@@ -18,10 +19,12 @@ use std::env;
 use regex::Regex;
 use std::fs;
 use terminal_size::{Width, Height, terminal_size};
+use std::str::FromStr;
 
 mod template;
 mod http;
 mod yaml;
+mod oauth;
 
 fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> HashMap<String, String> {
     let mut args_context = HashMap::new();
@@ -82,6 +85,36 @@ fn execute_script(context: HashMap<String, HashMap<String,String>>, subcmd_yaml:
     assert!(output.status.success());
 }
 
+fn get_parsed_yaml_key(key: &str, yaml: &Yaml, error_str: &str, context: &HashMap<String, HashMap<String, String>>) -> String {
+    template::get_compiled_template_str_with_context(
+        &yaml[key]
+            .clone()
+            .into_string()
+            .expect(error_str),
+        context
+    ).expect(format!("Could not parse template for yaml key: {}", key).as_str())
+}
+
+fn convert_body_hash(body: HashMap<String, String>) -> HashMap<String, Value> {
+    let mut result: HashMap<String, Value> = HashMap::new();
+    for (key, value) in body {
+        if value == "true" || value == "false" {
+            let bool_value = FromStr::from_str(&value)
+                .expect("Could not convert boolean value in body");
+            result.insert(key, Value::Bool(bool_value));
+        } else if value == "[[empty]]" {
+            // Do not insert empty values in body
+            continue;
+        } else {
+            match serde_json::from_str::<Number>(&value) {
+                Ok(n) => result.insert(key, Value::Number(n)),
+                Err(_e) => result.insert(key, Value::String(value)),
+            };
+        }
+    }
+    result
+}
+
 fn execute_request(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
     let subcmd_hash = subcmd_yaml.clone().into_hash().expect("Could not hash subcmd yaml");
     let mut http_method: String;
@@ -92,8 +125,27 @@ fn execute_request(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &
     }
 
     let endpoint = http::get_endpoint(&cmd_name, &args, &context, &yaml);
-    let headers = yaml::get_hash_from_yaml(&yaml["headers"], &context);
-    let body = yaml::get_hash_from_yaml(&subcmd_yaml["body"], &context);
+    let mut headers = yaml::get_hash_from_yaml(&yaml["headers"], &context);
+    let raw_body = yaml::get_hash_from_yaml(&subcmd_yaml["body"], &context);
+    let body = convert_body_hash(raw_body);
+
+    let oauth_yaml = &yaml["oauth"];
+    if !oauth_yaml.is_badvalue() {
+        let client_id = get_parsed_yaml_key("client_id", &oauth_yaml, "Missing client_id", &context);
+        let client_secret = get_parsed_yaml_key("client_secret", &oauth_yaml, "Missing client_secret", &context);
+        let auth_url = get_parsed_yaml_key("auth_url", &oauth_yaml, "Missing auth_url", &context);
+        let token_url = get_parsed_yaml_key("token_url", &oauth_yaml, "Missing token_url", &context);
+        let oauth_token = oauth::get_oauth_token(
+            app_name,
+            client_id,
+            client_secret,
+            auth_url,
+            token_url,
+        );
+
+        let header_name = get_parsed_yaml_key("header_key", &oauth_yaml, "Missing header_key", &context);
+        headers.insert(header_name, oauth_token);
+    }
 
     let mut response = http::request(&http_method, &endpoint, &headers, &body);
     let result: Value = response.json().expect(&format!("Could not convert response {:?} to json", response));
@@ -166,8 +218,23 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let app_name = format_cmd_name(&args[0]);
     let config_yaml = yaml::get_yaml_config(&app_name);
-    let mut app = App::from_yaml(&config_yaml);
+
+    let version;
+    if app_name == env!("CARGO_PKG_NAME") {
+        version = String::from(
+            config_yaml["version"]
+            .as_str()
+            .expect("Version not defined"));
+    } else {
+        let djoat_version = env!("CARGO_PKG_VERSION");;
+        let app_version = config_yaml["version"].as_str().expect("Version not defined");
+        version = format!("{} (joat {})", app_version, djoat_version);
+    }
+    let mut app = App::from_yaml(&config_yaml)
+        .version(&*version);
+
     let matches = app.clone().get_matches();
+
     match matches.subcommand() {
         (name, sub_cmd_option) => {
             match sub_cmd_option {
