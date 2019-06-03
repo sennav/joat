@@ -3,7 +3,6 @@ use reqwest::Method;
 use std::collections::HashMap;
 use yaml_rust::Yaml;
 use std::vec::Vec;
-use clap::ArgMatches;
 use serde_json::value::Value;
 
 use crate::yaml;
@@ -16,50 +15,43 @@ fn get_complete_endpoint(base_endpoint: &Yaml, path_yaml: &Yaml) -> String {
     return endpoint;
 }
 
-fn get_param_split(param: String) -> (String, String) {
-    let mut parts = param.split("=");
-    if parts.clone().count() != 2 {
-        println!("Params should be formatted as foo=bar");
-        ::std::process::exit(1);
-    }
-    let raw_key = &String::from(parts.next().unwrap());
-    let raw_value = &String::from(parts.next().unwrap());
-    let key = template::get_compiled_template_str(raw_key);
-    let value = template::get_compiled_template_str(raw_value);
-    return (key, value);
-}
-
 fn stringify(query: Vec<(String, String)>) -> String {
     query.iter().fold(String::new(), |acc, tuple| {
         acc + &tuple.0 + "=" + &tuple.1 + "&"
     })
 }
 
-fn get_params(args: &ArgMatches) -> String {
-    let mut param_vec = Vec::new();
-    let params = match args.values_of("param") {
-        Some(t) => t,
-        None => {
-            return String::from("");
-        },
-    };
-    for p in params {
-        let param = String::from(p);
-        let splitted_param = get_param_split(param);
-        param_vec.push(splitted_param);
+fn get_endpoint_with_qp(
+    endpoint: String,
+    query_params: &HashMap<String, String>,
+    context: &HashMap<String, HashMap<String, String>>) -> String
+{
+    if endpoint.contains("?") {
+        return endpoint;
     }
-    return stringify(param_vec);
+    let mut param_vec = Vec::new();
+    for (key, value) in query_params {
+        if value.is_empty() {
+            continue;
+        }
+        let parsed_qp_value = template::get_compiled_template_str_with_context(&value, &context)
+            .expect("Error parsing query param option, check your template");
+        param_vec.push((key.clone(), parsed_qp_value));
+    }
+    format!("{}?{}", endpoint, stringify(param_vec))
 }
 
-pub fn get_endpoint(cmd_name: &str, args: &ArgMatches, context: &HashMap<String, HashMap<String, String>>, yaml: &Yaml) -> String {
+pub fn get_endpoint(cmd_name: &str,
+    context: &HashMap<String, HashMap<String, String>>,
+    yaml: &Yaml,
+    query_params: &HashMap<String, String>) -> String
+{
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
     let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
-    let params = get_params(args);
-    let mut parsed_endpoint = template::get_compiled_template_str_with_context(&raw_endpoint, &context)
-        .expect(format!("Could not parse endpoint {}", raw_endpoint).as_str());
-    if params.len() > 0 {
-        parsed_endpoint = format!("{}?{}", parsed_endpoint, params);
-    }
+    let endpoint_with_qp = get_endpoint_with_qp(raw_endpoint, query_params, context);
+    let parsed_endpoint = template::get_compiled_template_str_with_context(&endpoint_with_qp, &context)
+        .expect(format!("Could not parse endpoint {}", endpoint_with_qp).as_str());
+
     return parsed_endpoint;
 }
 
@@ -82,7 +74,12 @@ fn get_method(method: &String) -> Method {
     return Method::GET;
 }
 
-pub fn request(method: &String, endpoint: &String, headers: &HashMap<String, String>, body: &HashMap<String, Value>) -> Response {
+pub fn request(
+        method: &String,
+        endpoint: &String,
+        headers: &HashMap<String, String>,
+        body: &HashMap<String, Value>) -> Response
+{
     let client = reqwest::Client::new();
     let reqwest_method = get_method(&method);
     let mut client_get = client.request(reqwest_method, endpoint);

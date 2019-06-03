@@ -115,7 +115,7 @@ fn convert_body_hash(body: HashMap<String, String>) -> HashMap<String, Value> {
     result
 }
 
-fn execute_request(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
+fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
     let subcmd_hash = subcmd_yaml.clone().into_hash().expect("Could not hash subcmd yaml");
     let mut http_method: String;
     if subcmd_hash.contains_key(&Yaml::from_str("method")) {
@@ -124,10 +124,14 @@ fn execute_request(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &
         http_method = String::from("get")
     }
 
-    let endpoint = http::get_endpoint(&cmd_name, &args, &context, &yaml);
     let mut headers = yaml::get_hash_from_yaml(&yaml["headers"], &context);
+
     let raw_body = yaml::get_hash_from_yaml(&subcmd_yaml["body"], &context);
     let body = convert_body_hash(raw_body);
+
+    let query_params = yaml::get_hash_from_yaml(&subcmd_yaml["query_params"], &context);
+
+    let endpoint = http::get_endpoint(&cmd_name, &context, &yaml, &query_params);
 
     let oauth_yaml = &yaml["oauth"];
     if !oauth_yaml.is_badvalue() {
@@ -197,7 +201,7 @@ fn execute(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     if !script.is_badvalue() {
         execute_script(context, &subcmd_yaml);
     } else {
-        execute_request(&app_name, &cmd_name, &args, &yaml, &subcmd_yaml, context);
+        execute_request(&app_name, &cmd_name, &yaml, &subcmd_yaml, context);
     }
 }
 
