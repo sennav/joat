@@ -11,3 +11,21 @@
 {{ name }} = "{{ value }}"
 {% endif -%}
 {%- endmacro debug_print -%}
+
+{%- macro json_print(name, value, identation) -%}
+{% if value is object -%}
+{{identation}}{
+{% for key, inner_value in value -%}
+    {{identation ~ "  "}}"{{key}}": {{ self::json_print(name=key, value=inner_value, identation=identation ~ "    ") }}{% if not loop.last %},{% endif %}
+{% endfor -%}
+{{identation}}}
+{% elif value is iterable -%}
+{{identation}}[
+{% for inner_value in value -%}
+    {{identation}}{{ self::json_print(name=name, value=inner_value, identation=identation ~ "  ") }}{% if not loop.last %},{% endif %}
+{% endfor -%}
+{{identation}}]
+{% else -%}
+"{{ value }}"
+{%- endif -%}
+{%- endmacro json_print %}

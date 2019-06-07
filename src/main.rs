@@ -79,8 +79,10 @@ fn execute_script(context: HashMap<String, HashMap<String,String>>, subcmd_yaml:
             .env("COLUMNS", columns.to_string())
             .output()
             .expect("failed to execute script");
-    io::stdout().write_all(&output.stdout).unwrap();
-    io::stderr().write_all(&output.stderr).unwrap();
+    if !context["args"].contains_key("quiet") {
+        io::stdout().write_all(&output.stdout).unwrap();
+        io::stderr().write_all(&output.stderr).unwrap();
+    }
 
     assert!(output.status.success());
 }
@@ -163,10 +165,12 @@ fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_yaml: 
     } else if subcmd_hash.contains_key(&Yaml::from_str("response_template")) {
         template = subcmd_yaml["response_template"].clone().into_string().unwrap();
     } else {
-        template = String::from("debug.j2")
+        template = String::from("json.j2")
     }
     let mut template_parser = template::Template::new(app_name); // TODO remove mut
-    print!("{}", template_parser.get_compiled_template_with_context(template, response_context));
+    if !context["args"].contains_key("quiet") {
+        print!("{}", template_parser.get_compiled_template_with_context(template, response_context));
+    }
 }
 
 fn execute_init(context: HashMap<String, HashMap<String, String>>) {
