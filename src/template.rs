@@ -14,21 +14,6 @@ fn get_env_hash() -> HashMap<String, String> {
     return env_vars;
 }
 
-pub fn get_compiled_template_str(template: &String) -> String {
-    let mut context = Context::new();
-    context.insert("env", &get_env_hash());
-
-    let result = match Tera::one_off(&template, context, false) {
-        Ok(s) => s,
-        Err(e) => {
-            println!("Could not compile template {:?}", template);
-            println!("Error: {}", e);
-            ::std::process::exit(1);
-        }
-    };
-    return result;
-}
-
 pub fn get_compiled_template_str_with_context(template: &String, raw_context: &HashMap<String, HashMap<String, String>>) -> Result<String, Error> {
     let mut context = Context::new();
     context.insert("env", &get_env_hash());
@@ -68,7 +53,9 @@ impl Template {
                 ::std::process::exit(1);
             },
         };
-        let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
+
+        // Add home tamplates
+        let home_dir_str = home_dir_path.clone().into_os_string().into_string().unwrap();
         let home_path_str = String::from(format!("{}/.{}.joat/templates/**", home_dir_str, app_name));
         let tera_home_templates = Tera::new(home_path_str.as_str())
             .expect("Could not start Tera");
@@ -78,6 +65,20 @@ impl Template {
             if let Ok(template) = template {
                 let filename = String::from(template.file_name().to_str().unwrap());
                 template_path.insert(filename, home_path_str.clone());
+            }
+        }
+
+        // Add joat default templates
+        let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
+        let joat_path_str = String::from(format!("{}/.joat.joat/templates/**", home_dir_str));
+        let tera_joat_templates = Tera::new(joat_path_str.as_str())
+            .expect("Could not start Tera");
+        tera.extend(&tera_joat_templates).unwrap();
+
+        for template in globwalk::glob(joat_path_str.clone()).unwrap() {
+            if let Ok(template) = template {
+                let filename = String::from(template.file_name().to_str().unwrap());
+                template_path.insert(filename, joat_path_str.clone());
             }
         }
 
