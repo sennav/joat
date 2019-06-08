@@ -33,31 +33,36 @@ pub struct Template {
 impl Template {
     pub fn new(app_name: &str) -> Template {
         let mut template_path = HashMap::new();
-        let mut tera = match Tera::new("templates/**") {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Could not start tera: {}", e);
-                ::std::process::exit(1);
+
+        let home_dir_path = dirs::home_dir().expect("Could not get home dir");
+
+        // Add joat default templates
+        let home_dir_str = home_dir_path.clone().into_os_string().into_string().unwrap();
+        let joat_path_str = String::from(format!("{}/.joat.joat/templates/**", home_dir_str));
+        let mut tera = Tera::parse(joat_path_str.as_str())
+            .expect("Could not start Tera");
+
+        for template in globwalk::glob(joat_path_str.clone()).unwrap() {
+            if let Ok(template) = template {
+                let filename = String::from(template.file_name().to_str().unwrap());
+                template_path.insert(filename, joat_path_str.clone());
             }
-        };
+        }
+
+        let tera_local_templates = Tera::parse("templates/**")
+            .expect("Could not start tera with local templates");
         for template in globwalk::glob("templates/**").unwrap() {
             if let Ok(template) = template {
                 let filename = String::from(template.file_name().to_str().unwrap());
                 template_path.insert(filename, String::from("./templates/"));
             }
         }
-        let home_dir_path = match dirs::home_dir() {
-            Some(h) => h,
-            _ => {
-                println!("Could not find home dir");
-                ::std::process::exit(1);
-            },
-        };
+        tera.extend(&tera_local_templates).unwrap();
 
         // Add home tamplates
-        let home_dir_str = home_dir_path.clone().into_os_string().into_string().unwrap();
+        let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
         let home_path_str = String::from(format!("{}/.{}.joat/templates/**", home_dir_str, app_name));
-        let tera_home_templates = Tera::new(home_path_str.as_str())
+        let tera_home_templates = Tera::parse(home_path_str.as_str())
             .expect("Could not start Tera");
         tera.extend(&tera_home_templates).unwrap();
 
@@ -68,19 +73,8 @@ impl Template {
             }
         }
 
-        // Add joat default templates
-        let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
-        let joat_path_str = String::from(format!("{}/.joat.joat/templates/**", home_dir_str));
-        let tera_joat_templates = Tera::new(joat_path_str.as_str())
-            .expect("Could not start Tera");
-        tera.extend(&tera_joat_templates).unwrap();
 
-        for template in globwalk::glob(joat_path_str.clone()).unwrap() {
-            if let Ok(template) = template {
-                let filename = String::from(template.file_name().to_str().unwrap());
-                template_path.insert(filename, joat_path_str.clone());
-            }
-        }
+        tera.build_inheritance_chains().unwrap();
 
         return Template {
             tera,
