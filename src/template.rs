@@ -1,6 +1,7 @@
 extern crate globwalk;
 
 use std::env;
+use std::path::Path;
 use std::collections::HashMap;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -49,15 +50,17 @@ impl Template {
             }
         }
 
-        let tera_local_templates = Tera::parse("templates/**")
-            .expect("Could not start tera with local templates");
-        for template in globwalk::glob("templates/**").unwrap() {
-            if let Ok(template) = template {
-                let filename = String::from(template.file_name().to_str().unwrap());
-                template_path.insert(filename, String::from("./templates/"));
+        if Path::new("./templates/").exists() {
+            let tera_local_templates = Tera::parse("./templates/**")
+                .expect("Could not start tera with local templates");
+            for template in globwalk::glob("templates/**").unwrap() {
+                if let Ok(template) = template {
+                    let filename = String::from(template.file_name().to_str().unwrap());
+                    template_path.insert(filename, String::from("./templates/"));
+                }
             }
+            tera.extend(&tera_local_templates).unwrap();
         }
-        tera.extend(&tera_local_templates).unwrap();
 
         // Add home tamplates
         let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
