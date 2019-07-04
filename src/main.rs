@@ -25,6 +25,9 @@ mod http;
 mod yaml;
 mod oauth;
 
+const RECUSRION_COUNT_VAR_NAME : &str = "DJOAT_RECURSION_COUNT";
+const COLUMNS_ENV_VAR_NAME : &str = "COLUMNS";
+
 fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> HashMap<String, String> {
     let mut args_context = HashMap::new();
     for arg in subcmd_yaml["args"].clone().into_iter() {
@@ -57,14 +60,16 @@ fn get_vars_context(yaml: &Yaml) -> HashMap<String, String> {
 }
 
 fn get_terminal_width() -> u16 {
+    match env::var(COLUMNS_ENV_VAR_NAME) {
+        Ok(c) => return c.parse().expect("Coulumns should be u16 integers"),
+        Err(_) => (),
+    }
     let size = terminal_size();
     if let Some((Width(w), Height(_h))) = size {
         return w;
     }
     return 80;
 }
-
-const RECUSRION_COUNT_VAR_NAME : &str = "DJOAT_RECURSION_COUNT";
 
 fn check_recursion_count(yaml: &Yaml) -> i64 {
     let max_recursion_count;
@@ -99,7 +104,7 @@ fn execute_script(context: HashMap<String, HashMap<String,String>>, subcmd_yaml:
     let output = Command::new("bash")
             .arg("-c")
             .arg(script)
-            .env("COLUMNS", columns.to_string())
+            .env(COLUMNS_ENV_VAR_NAME, columns.to_string())
             .env(RECUSRION_COUNT_VAR_NAME, recursion_count.to_string())
             .output()
             .expect("failed to execute script");
