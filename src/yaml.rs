@@ -120,6 +120,23 @@ fn get_quiet_arg_options() -> BTreeMap<Yaml, Yaml> {
     quiet_options
 }
 
+fn get_raw_arg_options() -> BTreeMap<Yaml, Yaml> {
+    let mut raw_options = BTreeMap::new();
+
+    let short = get_yaml_string("short");
+    let short_value = get_yaml_string("R");
+    let long = get_yaml_string("long");
+    let long_value = get_yaml_string("raw_response");
+    let help = get_yaml_string("help");
+    let help_value = get_yaml_string("Do not parse response as template");
+
+    raw_options.insert(short, short_value);
+    raw_options.insert(long, long_value);
+    raw_options.insert(help, help_value);
+
+    raw_options
+}
+
 fn get_arg_yaml(name: &str, options: BTreeMap<Yaml, Yaml>) -> Yaml {
     let name = get_yaml_string(name);
     let mut args = BTreeMap::new();
@@ -230,6 +247,10 @@ fn add_default_options(config: Yaml) -> Yaml {
             let quiet_options = get_quiet_arg_options();
             check_existing_options(args.clone(), &quiet_options);
             args.push(get_arg_yaml("quiet", quiet_options));
+
+            let raw_options = get_raw_arg_options();
+            check_existing_options(args.clone(), &raw_options);
+            args.push(get_arg_yaml("raw_response", raw_options));
         }
     }
     Yaml::Hash(config_bmap.clone())
@@ -304,7 +325,7 @@ pub fn get_subcommand_from_yaml(cmd_name: &str, yaml: &Yaml) -> Yaml {
         Some(s) => s,
         None => {
             println!("Failed to retrieve subcommands hash, exiting.");
-            ::std::process::exit(1);   
+            ::std::process::exit(1);
         }
     };
     return scmd_hash[cmd_name].clone();

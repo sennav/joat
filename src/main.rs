@@ -146,6 +146,15 @@ fn convert_body_hash(body: HashMap<String, String>) -> HashMap<String, Value> {
     result
 }
 
+fn print_response_json(result: &Value, pretty: bool) {
+    if pretty {
+        print!("{}", serde_json::to_string_pretty(result)
+            .expect("Could not convert response to pretty print json"));
+    } else {
+        print!("{}", result);
+    }
+}
+
 fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
     let subcmd_hash = subcmd_yaml.clone().into_hash().expect("Could not hash subcmd yaml");
     let mut http_method: String;
@@ -185,18 +194,29 @@ fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_yaml: 
     let mut response = http::request(&http_method, &endpoint, &headers, &body);
     let result: Value = response.json().expect(&format!("Could not convert response {:?} to json", response));
 
-    let mut response_context = HashMap::new();
-    response_context.insert(String::from("response"), result);
+    // Raw output
+    if context["args"].contains_key("raw_response") {
+        print_response_json(&result, false);
+        return
+    }
 
     let mut template: String;
     if context["args"].contains_key("template") {
         template = context["args"]["template"].clone();
+        if template == "json" {
+            print_response_json(&result, true);
+            return
+        }
     } else if subcmd_hash.contains_key(&Yaml::from_str("response_template")) {
         template = subcmd_yaml["response_template"].clone().into_string().unwrap();
     } else {
-        template = String::from("json.j2")
+        print_response_json(&result, true);
+        return
     }
+
     let mut template_parser = template::Template::new(app_name); // TODO remove mut
+    let mut response_context = HashMap::new();
+    response_context.insert(String::from("response"), result.clone());
     if !context["args"].contains_key("quiet") {
         print!("{}", template_parser.get_compiled_template_with_context(template, response_context));
     }
