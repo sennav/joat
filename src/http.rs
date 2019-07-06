@@ -38,6 +38,9 @@ fn get_endpoint_with_qp(
             .expect("Error parsing query param option, check your template");
         param_vec.push((key.clone(), parsed_qp_value));
     }
+    if param_vec.is_empty() {
+        return endpoint;
+    }
     format!("{}?{}", endpoint, stringify(param_vec))
 }
 
