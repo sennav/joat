@@ -5,7 +5,7 @@ authors = ["Vinicius <senna.vmd@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-clap = { version = "~2.27.0", features = ["yaml"] }
+clap = { version = "~2.33.0", features = ["yaml"] }
 tera = { version = "1.0.0-beta.5" }
 yaml-rust = "0.3.5"
 reqwest = "0.9.15"

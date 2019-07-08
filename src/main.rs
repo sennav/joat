@@ -7,8 +7,11 @@ extern crate serde;
 extern crate regex;
 extern crate dirs;
 
-use clap::App;
-use clap::ArgMatches;
+use clap::{
+    App,
+    ArgMatches,
+    Shell,
+};
 use serde_json::value::Value;
 use serde_json::Number;
 use std::collections::HashMap;
@@ -235,7 +238,23 @@ fn execute_init(context: HashMap<String, HashMap<String, String>>) {
     println!("To start testing with your extension create a symlink in your PATH targeting joat binaries with name: {}", cmd_name);
 }
 
-fn execute(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
+fn execute_auto_complete(mut app: App, app_name: &str, context: HashMap<String, HashMap<String, String>>) {
+    let selected_shell = &context["args"]["SHELL"];
+    let shell;
+    match selected_shell.as_ref() {
+        "zsh" => shell = Shell::Zsh,
+        "bash" => shell = Shell::Bash,
+        "fish" => shell = Shell::Fish,
+        "powershell" => shell = Shell::PowerShell,
+        "elvish" => shell = Shell::Elvish,
+        _ => panic!("Unknown shell, use only lowercase"),
+    };
+    app.gen_completions(app_name,
+                        shell,
+                        ".")
+}
+
+fn execute(app: App, app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
     let script = &subcmd_yaml["script"];
 
@@ -247,6 +266,11 @@ fn execute(app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
 
     if app_name == "joat" && cmd_name == "init" {
         execute_init(context);
+        return;
+    }
+
+    if cmd_name == "auto_complete" {
+        execute_auto_complete(app, app_name, context);
         return;
     }
 
@@ -299,7 +323,7 @@ fn main() {
                     if name == "install" {
                         install(name, sub_cmd, &config_yaml)
                     } else {
-                        execute(&app_name, name, sub_cmd, &config_yaml)
+                        execute(app, &app_name, name, sub_cmd, &config_yaml)
                     }
                 },
                 _ => {

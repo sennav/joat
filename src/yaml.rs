@@ -212,6 +212,36 @@ fn check_existing_options(args: Vec<Yaml>, option: &BTreeMap<Yaml,Yaml>) {
     }
 }
 
+fn add_auto_complete_cmd() -> Yaml {
+    let mut auto_complete_cmd = BTreeMap::new();
+    let mut auto_complete_cmd_options = BTreeMap::new();
+    let cmd_string = Yaml::String("auto_complete".to_string());
+    let about = Yaml::String("about".to_string());
+    let about_description = Yaml::String("Create auto complete script".to_string());
+
+    let mut args = Vec::new();
+    let mut shell_arg = BTreeMap::new();
+    let mut shell_arg_options = BTreeMap::new();
+
+    let args_str = Yaml::String("args".to_string());
+    let shell_arg_str = Yaml::String("SHELL".to_string());
+    let shell_arg_help_key_str = Yaml::String("help".to_string());
+    let shell_arg_help_value_str = Yaml::String("Which shell".to_string());
+    let shell_arg_required_key_str = Yaml::String("required".to_string());
+    let shell_arg_required_value_str = Yaml::Boolean(true);
+
+    shell_arg_options.insert(shell_arg_help_key_str, shell_arg_help_value_str);
+    shell_arg_options.insert(shell_arg_required_key_str, shell_arg_required_value_str);
+
+    shell_arg.insert(shell_arg_str, Yaml::Hash(shell_arg_options));
+    args.push(Yaml::Hash(shell_arg));
+
+    auto_complete_cmd_options.insert(about, about_description);
+    auto_complete_cmd_options.insert(args_str, Yaml::Array(args));
+    auto_complete_cmd.insert(cmd_string, Yaml::Hash(auto_complete_cmd_options));
+    Yaml::Hash(auto_complete_cmd)
+}
+
 fn add_default_options(config: Yaml) -> Yaml {
     let mut config_bmap = get_imut_yaml_hash(config);
     let scmd_yaml = config_bmap.get_mut(&get_yaml_string("subcommands"))
@@ -253,6 +283,9 @@ fn add_default_options(config: Yaml) -> Yaml {
             args.push(get_arg_yaml("raw_response", raw_options));
         }
     }
+    let auto_complete_cmd = add_auto_complete_cmd();
+    scmds.push(auto_complete_cmd);
+
     Yaml::Hash(config_bmap.clone())
 }
 

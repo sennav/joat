@@ -15,4 +15,3 @@ subcommands:
             - PROJECT_NAME:
                 help: Project name
                 required: true
-                index: 1

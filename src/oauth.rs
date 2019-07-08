@@ -124,7 +124,7 @@ fn start_callback_server(
         client_id_str: String,
         client_secret_str: String,
         client: SpecialClient,
-        csrf_state: CsrfToken) -> Option<String>
+        _csrf_state: CsrfToken) -> Option<String>
 {
     // A very naive implementation of the redirect server.
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
