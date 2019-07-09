@@ -126,7 +126,7 @@ fn start_callback_server(
         client: SpecialClient,
         _csrf_state: CsrfToken) -> Option<String>
 {
-    // A very naive implementation of the redirect server.
+    // TODO: is there a non naive way of doing this?
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
     for stream in listener.incoming() {
         if let Ok(mut stream) = stream {
