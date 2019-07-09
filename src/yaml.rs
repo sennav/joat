@@ -297,8 +297,7 @@ pub fn get_yaml_config(cmd_name: &String) -> Yaml {
         (Some(h), None) => h,
         (None, Some(l)) => l,
         (None, None) => {
-            println!("Could not find config file");
-            ::std::process::exit(1);
+            panic!("Could not find config file");
         }
     };
     add_default_options(config)
@@ -308,8 +307,7 @@ pub fn get_string_from_yaml(yaml: &Yaml) -> String {
     match yaml.clone().into_string() {
         Some(s) => s,
         None => {
-            println!("Failed to convert {:?} into string, exiting.", yaml);
-            ::std::process::exit(1);
+            panic!("Failed to convert {:?} into string, exiting.", yaml);
         },
     }
 }
@@ -321,8 +319,7 @@ pub fn get_hash_from_yaml(yaml: &Yaml, context: &HashMap<String, HashMap<String,
             if yaml.is_badvalue() {
                 return HashMap::new();
             }
-            println!("Failed to convert to hash map, exiting.");
-            ::std::process::exit(1);
+            panic!("Failed to convert to hash map, exiting.");
         }
     };
     let mut yaml_hash = HashMap::new();
@@ -343,8 +340,7 @@ pub fn get_subcommand_from_yaml(cmd_name: &str, yaml: &Yaml) -> Yaml {
     let subcommands_vec = match subcommands.clone().into_vec() {
         Some(t) => t,
         None => {
-            println!("Failed to retrieve subcommands, exiting.");
-            ::std::process::exit(1);
+            panic!("Failed to retrieve subcommands, exiting.");
         }
     };
     let cmd_name_yaml = Yaml::from_str(cmd_name);
@@ -357,9 +353,88 @@ pub fn get_subcommand_from_yaml(cmd_name: &str, yaml: &Yaml) -> Yaml {
     let scmd_hash = match scmd_option {
         Some(s) => s,
         None => {
-            println!("Failed to retrieve subcommands hash, exiting.");
-            ::std::process::exit(1);
+            panic!("Failed to retrieve subcommands hash, exiting.");
         }
     };
     return scmd_hash[cmd_name].clone();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_sample_subcommand(name: &str) -> Yaml {
+        let mut scmd_btree = BTreeMap::new();
+        let mut scmd_options_btree = BTreeMap::new();
+
+        let name = get_yaml_string(name);
+        let about = get_yaml_string("about");
+        let about_value = get_yaml_string("This is a sample scmd");
+
+        scmd_options_btree.insert(about, about_value);
+        scmd_btree.insert(name, Yaml::Hash(scmd_options_btree));
+
+        Yaml::Hash(scmd_btree)
+    }
+
+    fn create_sample_yaml() -> Yaml {
+        let mut yaml_btree = BTreeMap::new();
+
+        let name = get_yaml_string("name");
+        let name_value = get_yaml_string("test");
+        let subcommands_label = get_yaml_string("subcommands");
+        let mut subcommands = Vec::new();
+        subcommands.push(create_sample_subcommand("scmd1"));
+        subcommands.push(create_sample_subcommand("scmd2"));
+
+
+        yaml_btree.insert(name, name_value);
+        yaml_btree.insert(subcommands_label, Yaml::Array(subcommands));
+        Yaml::Hash(yaml_btree)
+    }
+
+    #[test]
+    fn test_get_yaml_string() {
+        // Arrange
+        let sample_str = "sample_str";
+        let yaml_str = Yaml::String(sample_str.to_string());
+
+        // Act, Assert
+        assert_eq!(yaml_str, get_yaml_string(sample_str));
+    }
+
+    #[test]
+    fn test_get_string_from_yaml() {
+        // Arrange
+        let sample_str = "sample_str";
+        let yaml_str = Yaml::String(sample_str.to_string());
+
+        // Act, Assert
+        assert_eq!(sample_str, get_string_from_yaml(&yaml_str));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_string_from_yaml_non_str_yaml() {
+        // Arrange
+        let yaml_number = Yaml::Integer(1);
+
+        // Act, Assert
+        get_string_from_yaml(&yaml_number);
+    }
+
+    #[test]
+    fn test_get_subcommand_from_yaml() {
+        // Arrange
+        let yaml = create_sample_yaml();
+        let scmd_about = "This is a sample scmd";
+
+        // Act
+        let subcommand = get_subcommand_from_yaml("scmd2", &yaml);
+
+        // Assert
+        let scmd_btree = subcommand.into_hash().expect("Could not cast to btree");
+        let about = &scmd_btree[&get_yaml_string("about")];
+        assert_eq!(about, &get_yaml_string(scmd_about));
+    }
 }

@@ -16,9 +16,11 @@ fn get_complete_endpoint(base_endpoint: &Yaml, path_yaml: &Yaml) -> String {
 }
 
 fn stringify(query: Vec<(String, String)>) -> String {
-    query.iter().fold(String::new(), |acc, tuple| {
+    let mut query_params = query.iter().fold(String::new(), |acc, tuple| {
         acc + &tuple.0 + "=" + &tuple.1 + "&"
-    })
+    });
+    query_params.pop();
+    query_params
 }
 
 fn get_endpoint_with_qp(
@@ -26,7 +28,7 @@ fn get_endpoint_with_qp(
     query_params: &HashMap<String, String>,
     context: &HashMap<String, HashMap<String, String>>) -> String
 {
-    if endpoint.contains("?") {
+    if endpoint.contains("?") || query_params.is_empty() {
         return endpoint;
     }
     let mut param_vec = Vec::new();
@@ -38,13 +40,11 @@ fn get_endpoint_with_qp(
             .expect("Error parsing query param option, check your template");
         param_vec.push((key.clone(), parsed_qp_value));
     }
-    if param_vec.is_empty() {
-        return endpoint;
-    }
     format!("{}?{}", endpoint, stringify(param_vec))
 }
 
-pub fn get_endpoint(cmd_name: &str,
+pub fn get_endpoint(
+    cmd_name: &str,
     context: &HashMap<String, HashMap<String, String>>,
     yaml: &Yaml,
     query_params: &HashMap<String, String>) -> String
@@ -96,8 +96,125 @@ pub fn request(
         Err(e) => {
             println!("Could not get response for endpoint {}", endpoint);
             println!("Error: {}", e);
-            ::std::process::exit(1);
+            panic!("Failed request");
         }
     };
     return response;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn test_get_string_from_yaml() {
+        // Arrange
+        let base_endpoint = Yaml::String("http://example.com".to_string());
+        let path = Yaml::String("/path".to_string());
+
+        // Act
+        let endpoint = get_complete_endpoint(&base_endpoint, &path);
+
+        // Assert
+        assert_eq!("http://example.com/path", endpoint);
+    }
+
+    #[test]
+    fn test_stringify() {
+        // Arrange
+        let mut query_params = Vec::new();
+        query_params.push((String::from("foo"), String::from("bar")));
+        query_params.push((String::from("foo"), String::from("bar")));
+
+        // Act
+        let query_params_str = stringify(query_params);
+
+        // Assert
+        assert_eq!("foo=bar&foo=bar", query_params_str);
+    }
+
+    #[test]
+    fn test_get_endpoint_with_qp() {
+        // Arrange
+        let endpoint = String::from("http://example.com/path");
+        let mut query_params = HashMap::new();
+        query_params.insert(String::from("foo"), String::from("bar"));
+        let context = HashMap::new();
+
+        // Act
+        let endpoint = get_endpoint_with_qp(endpoint, &query_params, &context);
+
+        // Assert
+        assert_eq!("http://example.com/path?foo=bar", endpoint);
+    }
+
+    #[test]
+    fn test_get_endpoint_with_qp_empty_qp() {
+        // Arrange
+        let endpoint = String::from("http://example.com/path");
+        let query_params = HashMap::new();
+        let context = HashMap::new();
+
+        // Act
+        let endpoint = get_endpoint_with_qp(endpoint, &query_params, &context);
+
+        // Assert
+        assert_eq!("http://example.com/path", endpoint);
+    }
+
+    fn get_yaml_string(rust_str: &str) -> Yaml {
+        Yaml::String(String::from(rust_str))
+    }
+
+    fn create_sample_subcommand(name: &str) -> Yaml {
+        let mut scmd_btree = BTreeMap::new();
+        let mut scmd_options_btree = BTreeMap::new();
+
+        let name = get_yaml_string(name);
+        let about = get_yaml_string("about");
+        let about_value = get_yaml_string("This is a sample scmd");
+
+        let path = get_yaml_string("path");
+        let path_value = get_yaml_string("path/to/resource");
+
+        scmd_options_btree.insert(about, about_value);
+        scmd_options_btree.insert(path, path_value);
+        scmd_btree.insert(name, Yaml::Hash(scmd_options_btree));
+
+        Yaml::Hash(scmd_btree)
+    }
+
+    fn create_sample_yaml() -> Yaml {
+        let mut yaml_btree = BTreeMap::new();
+
+        let name = get_yaml_string("name");
+        let name_value = get_yaml_string("test");
+        let base_endpoint = get_yaml_string("base_endpoint");
+        let base_endpoint_value = get_yaml_string("http://example.com/");
+        let subcommands_label = get_yaml_string("subcommands");
+        let mut subcommands = Vec::new();
+        subcommands.push(create_sample_subcommand("scmd1"));
+        subcommands.push(create_sample_subcommand("scmd2"));
+
+        yaml_btree.insert(name, name_value);
+        yaml_btree.insert(base_endpoint, base_endpoint_value);
+        yaml_btree.insert(subcommands_label, Yaml::Array(subcommands));
+        Yaml::Hash(yaml_btree)
+    }
+
+    #[test]
+    fn test_get_endpoint() {
+        // Arrange
+        let cmd_name = String::from("scmd2");
+        let context = HashMap::new();
+        let yaml = create_sample_yaml();
+        let query_params = HashMap::new();
+
+        // Act
+        let endpoint = get_endpoint(&cmd_name, &context, &yaml, &query_params);
+
+        // Assert
+        assert_eq!("http://example.com/path/to/resource", endpoint);
+    }
 }
