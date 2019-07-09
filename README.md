@@ -1,23 +1,25 @@
 # Jack of all trades - JOAT
 
-Joat is an experiment to ease the creation of command line interfaces for REST APIs.
-The program is written in rust and it's pretty much a work in progress, excpect errors and breaking changes.
+Joat is designed to ease the creation of command line interfaces for REST APIs and
+enable automation around these REST APIs.
+The program is written in rust and it's pretty much a work in progress, expect errors and breaking changes.
+Joat is heavily inspired by [go-jira](https://github.com/go-jira/jira) and uses a lot of powerful rust libraries.
 
-Joat uses a yaml file to define subcommands that can be of two types: requests and scripts.
-Some key attributes of this yaml file are treated as templates,
-you can use values defined in environment variables, arguments and more to define what should be send in the request.
+Joat uses a YAML file to define subcommands that can be of two types: requests and scripts.
+Requests subcommands ease the interaction with a REST API and scripts are a way of combining multiple commands into a more convenient one.
+For instance, suppose you have a team of developers that use trello.com as their Kanban board.
+Request commands could be something like `trello get <card_id>`, `trello move <card_id> <column_id>`, `trello assign <card_id> <user>`.
+Now suppose a developer needs to perform those three actions to start to working on a card.
+One could create a script command like `trello start <card_id>` which always assign oneself to the card and moves it to the in progress column.
+All this is configurable in a YAML file that can be shared among all developers to create a useful and tailored CLI for the team.
+Joat also combine YAML files from the local folder with files from the home folder, so it's possible to reuse community defined commands and then create your own specific commands on top of those (there's a TODO to make the search for config files recursive).
+
+Some key attributes of this YAML file are treated as templates,
+so you can use values defined in environment variables, arguments and more to define what should be send in the request or handled in the script.
 The syntax of the templates is Jinja2, you can read more about it [Tera's documentation](https://tera.netlify.com/)
 (the rust library used to do this).
 
-The request subcommand type contains details like endpoint and HTTP verb.
-You can define arguments that can go in the url and in the request body.
-You may use the templating system to define the request should be performed.
-
-The script subcommand executes a bash script defined in the yaml file.
-This type of script is useful when there's a need to combine multiple endpoints to perform meaningful actions.
-Scripts also make use of the templating system.
-
-## Instalation
+## Installation
 
 As this is work in progress there's no packaging of the binaries, it's necessary to compile the rust source code.
 To do that you'll need [rust's tools](https://www.rust-lang.org/tools/install) and execute this:
@@ -29,20 +31,18 @@ cargo build --release
 target/release/joat --help
 ```
 
-As you see after executing this the binaries will be at `target/release/joat`.
-Joat is not very useful in itself, one of the commands being considered is `joat install <joat-extension>`
-which should install yaml files and templates for a extension that has specifics for a particular REST API.
+As you see after executing these commands the binaries will be at `target/release/joat`.
+Joat is not very useful in itself, so you have to create an extension.
 
 ## Creating an extension
 
-Right now there's only one sample extension being defined as the example implementation, it's for gitlab's API.
-Here are the steps to get an extenstion working:
+Just execute:
 
 ```
 # Create an yaml file with the name of your cli
-touch gitlab.yml
-# alias or symlink joat binaries to your cli name (it has to be the same name as the yaml)
-alias gitlab=<absolute path to joat binaries>
+joat init <name of your cli>
+# symlink joat binaries to your cli name (it has to be the same name as the yaml)
+ln -s target/release/joat /usr/local/bin/<name of your cli>
 # optionally define templates
 mkdir templates && touch templates/sample.j2
 ```
@@ -99,11 +99,14 @@ subcommands:
             gitlab show {{args.ISSUE_ID}}
 ```
 
+## Contributing
+
+Be polite, I'm not earning anything to do this, other than that just create an issue or a PR and we'll take it from there.
+
 ## TODO
 
-- [ ] Install subcommand
 - [ ] Init subcommand
-- [ ] Script does not inherit shell variables and aliases
-- [ ] OAuth 2 capabilities
+- [ ] Standard OAuth 2 capabilities
 - [ ] Investigate other auth methods
-- [ ] Insert template absolute path on script context (allow calling other lang scripts).
+- [ ] Tests
+- [ ] Public release
