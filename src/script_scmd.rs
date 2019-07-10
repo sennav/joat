@@ -7,7 +7,7 @@ use std::env;
 
 use crate::template;
 
-const RECUSRION_COUNT_VAR_NAME : &str = "DJOAT_RECURSION_COUNT";
+const RECUSRION_COUNT_VAR_NAME : &str = "JOAT_RECURSION_COUNT";
 const COLUMNS_ENV_VAR_NAME : &str = "COLUMNS";
 
 

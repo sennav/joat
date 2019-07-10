@@ -297,9 +297,9 @@ fn override_version(app_name: &String, config: Yaml) -> Yaml {
             .as_str()
             .expect("Version not defined"));
     } else {
-        let djoat_version = env!("CARGO_PKG_VERSION");;
+        let joat_version = env!("CARGO_PKG_VERSION");;
         let app_version = config["version"].as_str().expect("Version not defined");
-        version = format!("{} (joat {})", app_version, djoat_version);
+        version = format!("{} (joat {})", app_version, joat_version);
     }
     let mut config_btree = config.into_hash().expect("Config yaml is not a hash");
     let version_yaml = get_yaml_string("version");
