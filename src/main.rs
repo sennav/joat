@@ -101,19 +101,7 @@ fn main() {
     let app_name = format_cmd_name(&args[0]);
     let config_yaml = yaml::get_yaml_config(&app_name);
 
-    let version;
-    if app_name == env!("CARGO_PKG_NAME") {
-        version = String::from(
-            config_yaml["version"]
-            .as_str()
-            .expect("Version not defined"));
-    } else {
-        let djoat_version = env!("CARGO_PKG_VERSION");;
-        let app_version = config_yaml["version"].as_str().expect("Version not defined");
-        version = format!("{} (joat {})", app_version, djoat_version);
-    }
-    let mut app = App::from_yaml(&config_yaml)
-        .version(&*version);
+    let mut app = App::from_yaml(&config_yaml);
 
     let matches = app.clone().get_matches();
 
