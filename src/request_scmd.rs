@@ -1,5 +1,5 @@
 use yaml_rust::Yaml;
-use serde_json::Number;
+use serde_json::{Number, Map};
 use std::collections::HashMap;
 use std::str::FromStr;
 use serde_json::value::Value;
@@ -43,6 +43,17 @@ fn print_response_json(result: &Value, pretty: bool) {
     } else {
         print!("{}", result);
     }
+}
+
+fn get_complete_context(mut response_context: HashMap<String, Value>, general_context: HashMap<String, HashMap<String, String>>) -> HashMap<String,Value> {
+    for (key, inner_hashmap) in general_context {
+        let mut map = Map::new();
+        for (ikey, ivalue) in inner_hashmap {
+            map.insert(ikey, Value::String(ivalue));
+        }
+        response_context.insert(key, Value::Object(map));
+    }
+    response_context
 }
 
 pub fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
@@ -107,7 +118,8 @@ pub fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_ya
     let mut template_parser = template::Template::new(app_name); // TODO remove mut
     let mut response_context = HashMap::new();
     response_context.insert(String::from("response"), result.clone());
+    let complete_context = get_complete_context(response_context, context.clone());
     if !context["args"].contains_key("quiet") {
-        print!("{}", template_parser.get_compiled_template_with_context(template, response_context));
+        print!("{}", template_parser.get_compiled_template_with_context(template, complete_context));
     }
 }

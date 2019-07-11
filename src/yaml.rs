@@ -1,27 +1,38 @@
-use std::collections::{ HashMap, BTreeMap };
-use yaml_rust::{ Yaml, YamlLoader };
 use crate::template;
-use std::path::Path;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
+use std::path::Path;
+use yaml_rust::{Yaml, YamlLoader};
 
 fn merge_hash(overrider: &BTreeMap<Yaml, Yaml>, overriden: &BTreeMap<Yaml, Yaml>) -> Yaml {
     let sub_key = Yaml::String(String::from("subcommands"));
-    let r_subcmd = overrider[&sub_key].clone().into_vec()
+    let r_subcmd = overrider[&sub_key]
+        .clone()
+        .into_vec()
         .expect("Subcommands should be an array");
     let mut cmds = Vec::new();
     let mut r_map = BTreeMap::new();
     for value in r_subcmd {
-        let scmd_hash = value.clone().into_hash().expect(&format!("Invalid subcommand {:?}", value));
-        let scmd_name = scmd_hash.keys().nth(0)
+        let scmd_hash = value
+            .clone()
+            .into_hash()
+            .expect(&format!("Invalid subcommand {:?}", value));
+        let scmd_name = scmd_hash
+            .keys()
+            .nth(0)
             .expect(&format!("Invalid subcommand name {:?}", scmd_hash));
         r_map.insert(scmd_name.to_owned(), true);
         cmds.push(value);
     }
-    let n_subcmd = overriden[&sub_key].clone().into_vec()
+    let n_subcmd = overriden[&sub_key]
+        .clone()
+        .into_vec()
         .expect("Subcommands should be an array");
     for v in n_subcmd {
         let scmd_hash = v.as_hash().expect(&format!("Invalid subcommand {:?}", v));
-        let scmd_name = scmd_hash.keys().nth(0)
+        let scmd_name = scmd_hash
+            .keys()
+            .nth(0)
             .expect(&format!("Invalid subcommand name {:?}", scmd_hash));
 
         if !r_map.contains_key(scmd_name) {
@@ -49,14 +60,36 @@ fn combine_yaml(overrider: &Yaml, overriden: &Yaml) -> Yaml {
     }
 }
 
+fn add_subcommands_path(config: Yaml, path: &String) -> Yaml {
+    let mut config_bmap = get_imut_yaml_hash(config);
+    let scmd_yaml = config_bmap
+        .get_mut(&get_yaml_string("subcommands"))
+        .expect("No subcommands in config, wrong yml format");
+    let scmds = get_yaml_array(scmd_yaml);
+
+    for scmd_yaml in scmds.iter_mut() {
+        let scmd = get_yaml_hash(scmd_yaml);
+
+        for (_scmd_name, scmd_options_yaml) in scmd.iter_mut() {
+            let scmd_options = get_yaml_hash(scmd_options_yaml);
+            let scmd_config_base_path = get_yaml_string("scmd_config_base_path");
+            let path_value = get_yaml_string(&path);
+            scmd_options.insert(scmd_config_base_path, path_value);
+        }
+    }
+
+    Yaml::Hash(config_bmap.clone())
+}
+
 fn get_config_from(cmd_name: &String, base_dir: &String) -> Option<Yaml> {
     let local_path = String::from(format!("{}{}.yml", base_dir, cmd_name));
     if Path::new(&local_path).exists() {
-        let local_config = fs::read_to_string(local_path)
-            .expect("Could not find configuration file");
-        let local_yaml = &YamlLoader::load_from_str(&local_config)
-            .expect("failed to load YAML file")[0];
-        return Some(local_yaml.clone());
+        let local_config =
+            fs::read_to_string(local_path.clone()).expect("Could not find configuration file");
+        let local_yaml =
+            &YamlLoader::load_from_str(&local_config).expect("failed to load YAML file")[0];
+        let config = add_subcommands_path(local_yaml.clone(), base_dir);
+        return Some(config);
     }
     return None;
 }
@@ -149,7 +182,7 @@ fn get_yaml_hash(yaml: &mut Yaml) -> &mut BTreeMap<Yaml, Yaml> {
         Yaml::Hash(ref mut h) => h,
         _ => {
             panic!("Failed to convert {:?} to mutable Yaml::Hash", yaml);
-        },
+        }
     }
 }
 
@@ -158,7 +191,7 @@ fn get_imut_yaml_hash(yaml: Yaml) -> BTreeMap<Yaml, Yaml> {
         Yaml::Hash(h) => h,
         _ => {
             panic!("Failed to convert {:?} to immutable Yaml::Hash", yaml);
-        },
+        }
     }
 }
 
@@ -167,11 +200,11 @@ fn get_yaml_array(yaml: &mut Yaml) -> &mut Vec<Yaml> {
         Yaml::Array(a) => a,
         _ => {
             panic!("Failed to convert {:?} to mutable Yaml::Array", yaml);
-        },
+        }
     }
 }
 
-fn check_existing_options(args: Vec<Yaml>, option: &BTreeMap<Yaml,Yaml>) {
+fn check_existing_options(args: Vec<Yaml>, option: &BTreeMap<Yaml, Yaml>) {
     for arg in args {
         let arg_hash = get_imut_yaml_hash(arg);
         for (_arg_name, arg_options_yaml) in arg_hash {
@@ -186,11 +219,11 @@ fn check_existing_options(args: Vec<Yaml>, option: &BTreeMap<Yaml,Yaml>) {
                                 println!("'short: {:?}' is reserved, check your yml", o);
                                 ::std::process::exit(1);
                             }
-                        },
-                        None => ()
+                        }
+                        None => (),
                     };
-                },
-                None => ()
+                }
+                None => (),
             };
 
             let long = get_yaml_string("long");
@@ -202,11 +235,11 @@ fn check_existing_options(args: Vec<Yaml>, option: &BTreeMap<Yaml,Yaml>) {
                                 println!("'long: {:?}' is reserved, check your yml", o);
                                 ::std::process::exit(1);
                             }
-                        },
-                        None => ()
+                        }
+                        None => (),
                     };
-                },
-                None => ()
+                }
+                None => (),
             };
         }
     }
@@ -244,7 +277,8 @@ fn add_auto_complete_cmd() -> Yaml {
 
 fn add_default_options(config: Yaml) -> Yaml {
     let mut config_bmap = get_imut_yaml_hash(config);
-    let scmd_yaml = config_bmap.get_mut(&get_yaml_string("subcommands"))
+    let scmd_yaml = config_bmap
+        .get_mut(&get_yaml_string("subcommands"))
         .expect("No subcommands in config, wrong yml format");
     let scmds = get_yaml_array(scmd_yaml);
 
@@ -264,7 +298,6 @@ fn add_default_options(config: Yaml) -> Yaml {
             let scmd_options_clone = scmd_options.clone();
             let args_opt = scmd_options.get_mut(&args_yaml).unwrap();
             let args = get_yaml_array(args_opt);
-
 
             let script_yaml = get_yaml_string("script");
             if !scmd_options_clone.contains_key(&script_yaml) {
@@ -292,10 +325,7 @@ fn add_default_options(config: Yaml) -> Yaml {
 fn override_version(app_name: &String, config: Yaml) -> Yaml {
     let version;
     if app_name == env!("CARGO_PKG_NAME") {
-        version = String::from(
-            config["version"]
-            .as_str()
-            .expect("Version not defined"));
+        version = String::from(config["version"].as_str().expect("Version not defined"));
     } else {
         let joat_version = env!("CARGO_PKG_VERSION");;
         let app_version = config["version"].as_str().expect("Version not defined");
@@ -328,11 +358,14 @@ pub fn get_string_from_yaml(yaml: &Yaml) -> String {
         Some(s) => s,
         None => {
             panic!("Failed to convert {:?} into string, exiting.", yaml);
-        },
+        }
     }
 }
 
-pub fn get_hash_from_yaml(yaml: &Yaml, context: &HashMap<String, HashMap<String, String>>) -> HashMap<String, String> {
+pub fn get_hash_from_yaml(
+    yaml: &Yaml,
+    context: &HashMap<String, HashMap<String, String>>,
+) -> HashMap<String, String> {
     let yaml_btree = match yaml.clone().into_hash() {
         Some(t) => t,
         None => {
@@ -346,12 +379,13 @@ pub fn get_hash_from_yaml(yaml: &Yaml, context: &HashMap<String, HashMap<String,
     for (key, value) in yaml_btree.iter() {
         let str_key = get_string_from_yaml(key);
         let value_str = get_string_from_yaml(value);
-        let parsed_value = match template::get_compiled_template_str_with_context(&value_str, &context) {
-            Ok(t) => t,
-            Err(_e) => continue,
-        };
+        let parsed_value =
+            match template::get_compiled_template_str_with_context(&value_str, &context) {
+                Ok(t) => t,
+                Err(_e) => continue,
+            };
         yaml_hash.insert(str_key, parsed_value);
-    };
+    }
     return yaml_hash;
 }
 
@@ -364,12 +398,12 @@ pub fn get_subcommand_from_yaml(cmd_name: &str, yaml: &Yaml) -> Yaml {
         }
     };
     let cmd_name_yaml = Yaml::from_str(cmd_name);
-    let scmd_option = subcommands_vec.iter().find(|&s| {
-        match s.clone().into_hash() {
+    let scmd_option = subcommands_vec
+        .iter()
+        .find(|&s| match s.clone().into_hash() {
             Some(sl) => sl.contains_key(&cmd_name_yaml),
-            None => false
-        }
-    });
+            None => false,
+        });
     let scmd_hash = match scmd_option {
         Some(s) => s,
         None => {
@@ -406,7 +440,6 @@ mod tests {
         let mut subcommands = Vec::new();
         subcommands.push(create_sample_subcommand("scmd1"));
         subcommands.push(create_sample_subcommand("scmd2"));
-
 
         yaml_btree.insert(name, name_value);
         yaml_btree.insert(subcommands_label, Yaml::Array(subcommands));

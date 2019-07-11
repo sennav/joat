@@ -55,14 +55,34 @@ fn get_vars_context(yaml: &Yaml) -> HashMap<String, String> {
     return vars_context;
 }
 
+fn get_env_context() -> HashMap<String, String> {
+    let mut env_vars = HashMap::new();
+    for (key, value) in env::vars() {
+        env_vars.insert(key, value);
+    }
+    return env_vars;
+}
+
+fn get_scmd_context(scmd_yaml: &Yaml) -> HashMap<String, String> {
+    let mut scmd_vars = HashMap::new();
+    let value = scmd_yaml["scmd_config_base_path"].clone().into_string()
+        .expect("scmd_config_base_path should be a string");
+    scmd_vars.insert(String::from("scmd_config_base_path"), value);
+    return scmd_vars;
+}
+
 fn execute(app: App, app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
 
     let vars_context = get_vars_context(yaml);
     let args_context = get_args_context(&args, &subcmd_yaml);
+    let env_context = get_env_context();
+    let scmd_context = get_scmd_context(&subcmd_yaml);
     let mut context = HashMap::new();
     context.insert(String::from("vars"), vars_context);
     context.insert(String::from("args"), args_context);
+    context.insert(String::from("env"), env_context);
+    context.insert(String::from("scmd"), scmd_context);
 
     if app_name == "joat" && cmd_name == "init" {
         joat_scmds::execute_init(context);
