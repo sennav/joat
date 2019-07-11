@@ -65,11 +65,12 @@ fn get_env_context() -> HashMap<String, String> {
 
 fn get_scmd_context(scmd_yaml: &Yaml) -> HashMap<String, String> {
     let mut scmd_vars = HashMap::new();
-    let value = scmd_yaml["scmd_config_base_path"]
-        .clone()
-        .into_string()
-        .expect("scmd_config_base_path should be a string");
-    scmd_vars.insert(String::from("scmd_config_base_path"), value);
+    match scmd_yaml["scmd_config_base_path"].clone().into_string() {
+        Some(s) => {
+            scmd_vars.insert(String::from("scmd_config_base_path"), s);
+        }
+        None => (),
+    }
     return scmd_vars;
 }
 
