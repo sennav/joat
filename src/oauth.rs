@@ -3,31 +3,25 @@ extern crate oauth2;
 extern crate rand;
 extern crate url;
 
-use oauth2::basic::{ BasicErrorResponse, BasicTokenType };
+use oauth2::basic::{BasicErrorResponse, BasicTokenType};
+use oauth2::helpers;
+use oauth2::reqwest::http_client;
 use oauth2::{
-    TokenResponse,
-    AccessToken,
-    RefreshToken,
-    ExtraTokenFields,
-    TokenType,
-    Scope,
-    EmptyExtraTokenFields,
-    Client
+    AccessToken, Client, EmptyExtraTokenFields, ExtraTokenFields, RefreshToken, Scope,
+    TokenResponse, TokenType,
 };
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, TokenUrl,
 };
-use oauth2::helpers;
-use oauth2::reqwest::http_client;
 
-use std::time::Duration;
+use serde::{Deserialize, Serialize};
+use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
-use url::Url;
 use std::path::Path;
-use std::fs;
 use std::process::Command;
-use serde::{ Serialize, Deserialize};
+use std::time::Duration;
+use url::Url;
 
 //
 // Custom oauth client implementation for non standard oauth providers
@@ -36,7 +30,7 @@ use serde::{ Serialize, Deserialize};
 type SpecialTokenResponse = NonStandardTokenResponse<EmptyExtraTokenFields>;
 type SpecialClient = Client<BasicErrorResponse, SpecialTokenResponse, BasicTokenType>;
 
-fn default_token_type() -> Option<BasicTokenType>{
+fn default_token_type() -> Option<BasicTokenType> {
     Some(BasicTokenType::Bearer)
 }
 
@@ -121,11 +115,11 @@ where
 }
 
 fn start_callback_server(
-        client_id_str: String,
-        client_secret_str: String,
-        client: SpecialClient,
-        _csrf_state: CsrfToken) -> Option<String>
-{
+    client_id_str: String,
+    client_secret_str: String,
+    client: SpecialClient,
+    _csrf_state: CsrfToken,
+) -> Option<String> {
     // TODO: is there a non naive way of doing this?
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
     for stream in listener.incoming() {
@@ -161,19 +155,22 @@ fn start_callback_server(
             stream.write_all(response.as_bytes()).unwrap();
 
             // Exchange the code with a token.
-            let code_token_request = client.exchange_code(code)
+            let code_token_request = client
+                .exchange_code(code)
                 .add_extra_param("client_id", client_id_str)
                 .add_extra_param("client_secret", client_secret_str);
             let token = code_token_request.request(http_client);
 
             return Some(
                 token
-                .expect("Could not get token")
-                .access_token().clone()
-                .secret()
-                .to_string());
+                    .expect("Could not get token")
+                    .access_token()
+                    .clone()
+                    .secret()
+                    .to_string(),
+            );
         }
-    };
+    }
     return None;
 }
 
@@ -187,8 +184,7 @@ fn get_token_file_path(app_name: &str) -> String {
 fn get_token_from_file(app_name: &str) -> Option<String> {
     let token_path = get_token_file_path(app_name);
     if Path::new(&token_path).exists() {
-        let access_token = fs::read_to_string(token_path)
-            .expect("Could not read token file");
+        let access_token = fs::read_to_string(token_path).expect("Could not read token file");
         return Some(access_token);
     }
     return None;
@@ -203,47 +199,36 @@ fn oauth_flow(
     client_id_str: String,
     client_secret_str: String,
     auth_url_str: String,
-    token_url_str: String)-> String
-{
+    token_url_str: String,
+) -> String {
     let client_id = ClientId::new(client_id_str.clone());
     let client_secret = ClientSecret::new(client_secret_str.clone());
-    let auth_url = AuthUrl::new(
-        Url::parse(&auth_url_str).expect("Invalid authorization endpoint URL"));
-    let token_url = TokenUrl::new(
-        Url::parse(&token_url_str).expect("Invalid token endpoint URL"));
+    let auth_url =
+        AuthUrl::new(Url::parse(&auth_url_str).expect("Invalid authorization endpoint URL"));
+    let token_url = TokenUrl::new(Url::parse(&token_url_str).expect("Invalid token endpoint URL"));
 
-    let client = SpecialClient::new(
-        client_id,
-        Some(client_secret),
-        auth_url,
-        Some(token_url))
+    let client = SpecialClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
         .set_redirect_url(RedirectUrl::new(
             Url::parse("http://localhost:8080").expect("Invalid redirect URL"),
         ));
 
-    let (authorize_url, csrf_state) = client
-        .authorize_url(CsrfToken::new_random)
-        .url();
+    let (authorize_url, csrf_state) = client.authorize_url(CsrfToken::new_random).url();
     Command::new("open")
         .arg(authorize_url.to_string())
         .output()
         .expect("failed to execute script");
 
-    return start_callback_server(
-        client_id_str,
-        client_secret_str,
-        client,
-        csrf_state)
+    return start_callback_server(client_id_str, client_secret_str, client, csrf_state)
         .expect("Could not get access_token with oauth_flow");
 }
 
 pub fn get_oauth_token(
-        app_name: &str,
-        client_id_str: String,
-        client_secret_str: String,
-        auth_url_str: String,
-        token_url_str: String) -> String
-{
+    app_name: &str,
+    client_id_str: String,
+    client_secret_str: String,
+    auth_url_str: String,
+    token_url_str: String,
+) -> String {
     let access_token = get_token_from_file(app_name);
     match access_token {
         Some(t) => t,
@@ -252,7 +237,8 @@ pub fn get_oauth_token(
                 client_id_str,
                 client_secret_str,
                 auth_url_str,
-                token_url_str);
+                token_url_str,
+            );
             write_access_token(app_name, &access_token);
             access_token
         }

@@ -1,27 +1,30 @@
-use yaml_rust::Yaml;
-use serde_json::{Number, Map};
+use serde_json::value::Value;
+use serde_json::{Map, Number};
 use std::collections::HashMap;
 use std::str::FromStr;
-use serde_json::value::Value;
+use yaml_rust::Yaml;
 
-use crate::{ yaml, http, oauth, template };
+use crate::{http, oauth, template, yaml};
 
-fn get_parsed_yaml_key(key: &str, yaml: &Yaml, error_str: &str, context: &HashMap<String, HashMap<String, String>>) -> String {
+fn get_parsed_yaml_key(
+    key: &str,
+    yaml: &Yaml,
+    error_str: &str,
+    context: &HashMap<String, HashMap<String, String>>,
+) -> String {
     template::get_compiled_template_str_with_context(
-        &yaml[key]
-            .clone()
-            .into_string()
-            .expect(error_str),
-        context
-    ).expect(format!("Could not parse template for yaml key: {}", key).as_str())
+        &yaml[key].clone().into_string().expect(error_str),
+        context,
+    )
+    .expect(format!("Could not parse template for yaml key: {}", key).as_str())
 }
 
 fn convert_body_hash(body: HashMap<String, String>) -> HashMap<String, Value> {
     let mut result: HashMap<String, Value> = HashMap::new();
     for (key, value) in body {
         if value == "true" || value == "false" {
-            let bool_value = FromStr::from_str(&value)
-                .expect("Could not convert boolean value in body");
+            let bool_value =
+                FromStr::from_str(&value).expect("Could not convert boolean value in body");
             result.insert(key, Value::Bool(bool_value));
         } else if value == "[[empty]]" {
             // Do not insert empty values in body
@@ -38,14 +41,20 @@ fn convert_body_hash(body: HashMap<String, String>) -> HashMap<String, Value> {
 
 fn print_response_json(result: &Value, pretty: bool) {
     if pretty {
-        print!("{}", serde_json::to_string_pretty(result)
-            .expect("Could not convert response to pretty print json"));
+        print!(
+            "{}",
+            serde_json::to_string_pretty(result)
+                .expect("Could not convert response to pretty print json")
+        );
     } else {
         print!("{}", result);
     }
 }
 
-fn get_complete_context(mut response_context: HashMap<String, Value>, general_context: HashMap<String, HashMap<String, String>>) -> HashMap<String,Value> {
+fn get_complete_context(
+    mut response_context: HashMap<String, Value>,
+    general_context: HashMap<String, HashMap<String, String>>,
+) -> HashMap<String, Value> {
     for (key, inner_hashmap) in general_context {
         let mut map = Map::new();
         for (ikey, ivalue) in inner_hashmap {
@@ -56,8 +65,17 @@ fn get_complete_context(mut response_context: HashMap<String, Value>, general_co
     response_context
 }
 
-pub fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_yaml: &Yaml, context: HashMap<String, HashMap<String, String>>) {
-    let subcmd_hash = subcmd_yaml.clone().into_hash().expect("Could not hash subcmd yaml");
+pub fn execute_request(
+    app_name: &String,
+    cmd_name: &str,
+    yaml: &Yaml,
+    subcmd_yaml: &Yaml,
+    context: HashMap<String, HashMap<String, String>>,
+) {
+    let subcmd_hash = subcmd_yaml
+        .clone()
+        .into_hash()
+        .expect("Could not hash subcmd yaml");
     let mut http_method: String;
     if subcmd_hash.contains_key(&Yaml::from_str("method")) {
         http_method = subcmd_yaml["method"].clone().into_string().unwrap();
@@ -76,29 +94,35 @@ pub fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_ya
 
     let oauth_yaml = &yaml["oauth"];
     if !oauth_yaml.is_badvalue() {
-        let client_id = get_parsed_yaml_key("client_id", &oauth_yaml, "Missing client_id", &context);
-        let client_secret = get_parsed_yaml_key("client_secret", &oauth_yaml, "Missing client_secret", &context);
-        let auth_url = get_parsed_yaml_key("auth_url", &oauth_yaml, "Missing auth_url", &context);
-        let token_url = get_parsed_yaml_key("token_url", &oauth_yaml, "Missing token_url", &context);
-        let oauth_token = oauth::get_oauth_token(
-            app_name,
-            client_id,
-            client_secret,
-            auth_url,
-            token_url,
+        let client_id =
+            get_parsed_yaml_key("client_id", &oauth_yaml, "Missing client_id", &context);
+        let client_secret = get_parsed_yaml_key(
+            "client_secret",
+            &oauth_yaml,
+            "Missing client_secret",
+            &context,
         );
+        let auth_url = get_parsed_yaml_key("auth_url", &oauth_yaml, "Missing auth_url", &context);
+        let token_url =
+            get_parsed_yaml_key("token_url", &oauth_yaml, "Missing token_url", &context);
+        let oauth_token =
+            oauth::get_oauth_token(app_name, client_id, client_secret, auth_url, token_url);
 
-        let header_name = get_parsed_yaml_key("header_key", &oauth_yaml, "Missing header_key", &context);
+        let header_name =
+            get_parsed_yaml_key("header_key", &oauth_yaml, "Missing header_key", &context);
         headers.insert(header_name, oauth_token);
     }
 
     let mut response = http::request(&http_method, &endpoint, &headers, &body);
-    let result: Value = response.json().expect(&format!("Could not convert response {:?} to json", response));
+    let result: Value = response.json().expect(&format!(
+        "Could not convert response {:?} to json",
+        response
+    ));
 
     // Raw output
     if context["args"].contains_key("raw_response") {
         print_response_json(&result, false);
-        return
+        return;
     }
 
     let mut template: String;
@@ -106,13 +130,16 @@ pub fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_ya
         template = context["args"]["template"].clone();
         if template == "json" {
             print_response_json(&result, true);
-            return
+            return;
         }
     } else if subcmd_hash.contains_key(&Yaml::from_str("response_template")) {
-        template = subcmd_yaml["response_template"].clone().into_string().unwrap();
+        template = subcmd_yaml["response_template"]
+            .clone()
+            .into_string()
+            .unwrap();
     } else {
         print_response_json(&result, true);
-        return
+        return;
     }
 
     let mut template_parser = template::Template::new(app_name); // TODO remove mut
@@ -120,6 +147,9 @@ pub fn execute_request(app_name: &String, cmd_name: &str, yaml: &Yaml, subcmd_ya
     response_context.insert(String::from("response"), result.clone());
     let complete_context = get_complete_context(response_context, context.clone());
     if !context["args"].contains_key("quiet") {
-        print!("{}", template_parser.get_compiled_template_with_context(template, complete_context));
+        print!(
+            "{}",
+            template_parser.get_compiled_template_with_context(template, complete_context)
+        );
     }
 }

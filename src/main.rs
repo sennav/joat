@@ -1,28 +1,25 @@
 extern crate clap;
+extern crate dirs;
+extern crate regex;
 extern crate reqwest;
+extern crate serde;
 extern crate serde_json;
 extern crate tera;
 extern crate yaml_rust;
-extern crate serde;
-extern crate regex;
-extern crate dirs;
 
-use clap::{
-    App,
-    ArgMatches
-};
-use std::collections::HashMap;
-use yaml_rust::Yaml;
-use std::env;
+use clap::{App, ArgMatches};
 use regex::Regex;
+use std::collections::HashMap;
+use std::env;
+use yaml_rust::Yaml;
 
-mod template;
 mod http;
-mod yaml;
-mod oauth;
-mod script_scmd;
-mod request_scmd;
 mod joat_scmds;
+mod oauth;
+mod request_scmd;
+mod script_scmd;
+mod template;
+mod yaml;
 
 fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> HashMap<String, String> {
     let mut args_context = HashMap::new();
@@ -48,7 +45,10 @@ fn get_vars_context(yaml: &Yaml) -> HashMap<String, String> {
             .expect("Could not convert vars into hash");
         for (key, value) in vars_iter {
             let key_str = key.clone().into_string().expect("Var key should be string");
-            let value_str = value.clone().into_string().expect("Var value should be string");
+            let value_str = value
+                .clone()
+                .into_string()
+                .expect("Var value should be string");
             vars_context.insert(key_str, value_str);
         }
     }
@@ -65,7 +65,9 @@ fn get_env_context() -> HashMap<String, String> {
 
 fn get_scmd_context(scmd_yaml: &Yaml) -> HashMap<String, String> {
     let mut scmd_vars = HashMap::new();
-    let value = scmd_yaml["scmd_config_base_path"].clone().into_string()
+    let value = scmd_yaml["scmd_config_base_path"]
+        .clone()
+        .into_string()
         .expect("scmd_config_base_path should be a string");
     scmd_vars.insert(String::from("scmd_config_base_path"), value);
     return scmd_vars;
@@ -111,8 +113,8 @@ fn format_cmd_name(cmd_name: &String) -> String {
     let re = Regex::new("[^/]*$").unwrap();
     String::from(
         re.find(cmd_name)
-        .expect("Failed to parse main cmd name")
-        .as_str()
+            .expect("Failed to parse main cmd name")
+            .as_str(),
     )
 }
 
@@ -128,9 +130,7 @@ fn main() {
     match matches.subcommand() {
         (name, sub_cmd_option) => {
             match sub_cmd_option {
-                Some(sub_cmd) => {
-                    execute(app, &app_name, name, sub_cmd, &config_yaml)
-                },
+                Some(sub_cmd) => execute(app, &app_name, name, sub_cmd, &config_yaml),
                 _ => {
                     // Could not find command, just print help
                     app.print_help().unwrap();

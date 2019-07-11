@@ -1,12 +1,8 @@
-use clap::{
-    App,
-    Shell,
-};
-use std::fs;
+use clap::{App, Shell};
 use std::collections::HashMap;
+use std::fs;
 
 use crate::template;
-
 
 pub fn install(context: HashMap<String, HashMap<String, String>>) {
     println!("Install something");
@@ -14,9 +10,7 @@ pub fn install(context: HashMap<String, HashMap<String, String>>) {
 
 pub fn execute_init(context: HashMap<String, HashMap<String, String>>) {
     let init_template = String::from(include_str!("../templates/config_template.yml"));
-    let yaml_str = template::get_compiled_template_str_with_context(
-        &init_template,
-        &context)
+    let yaml_str = template::get_compiled_template_str_with_context(&init_template, &context)
         .expect("Could not create yaml template");
     let cmd_name = &context["args"]["PROJECT_NAME"];
     let filename = format!("{}.yml", cmd_name);
@@ -25,7 +19,11 @@ pub fn execute_init(context: HashMap<String, HashMap<String, String>>) {
     println!("To start testing with your extension create a symlink in your PATH targeting joat binaries with name: {}", cmd_name);
 }
 
-pub fn execute_auto_complete(mut app: App, app_name: &str, context: HashMap<String, HashMap<String, String>>) {
+pub fn execute_auto_complete(
+    mut app: App,
+    app_name: &str,
+    context: HashMap<String, HashMap<String, String>>,
+) {
     let selected_shell = &context["args"]["SHELL"];
     let shell;
     match selected_shell.as_ref() {
@@ -36,7 +34,5 @@ pub fn execute_auto_complete(mut app: App, app_name: &str, context: HashMap<Stri
         "elvish" => shell = Shell::Elvish,
         _ => panic!("Unknown shell, use only lowercase"),
     };
-    app.gen_completions(app_name,
-                        shell,
-                        ".")
+    app.gen_completions(app_name, shell, ".")
 }
