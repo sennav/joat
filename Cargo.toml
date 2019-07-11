@@ -16,6 +16,6 @@ regex = "1"
 globwalk = "0.7"
 terminal_size = "0.1.8"
 base64 = "0.9"
-oauth2 = { path = "../oauth2-rs" }
+oauth2 = { version = "3.0.0-alpha.3" }
 rand = "0.6"
 url = "1.0"
