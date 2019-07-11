@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.com/sennav/joat.svg?token=gvqDsu5Cy69X2ywTP4E2&branch=dev)](https://travis-ci.com/sennav/joat)
-
 # Jack of all trades - JOAT
+
+[![Build Status](https://travis-ci.com/sennav/joat.svg?token=gvqDsu5Cy69X2ywTP4E2&branch=dev)](https://travis-ci.com/sennav/joat)
 
 Joat is designed to ease the creation of command line interfaces for REST APIs and
 enable automation around these REST APIs.
