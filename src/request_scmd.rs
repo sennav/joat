@@ -119,6 +119,11 @@ pub fn execute_request(
         response
     ));
 
+    // Quiet
+    if context["args"].contains_key("quiet") {
+        return;
+    }
+
     // Raw output
     if context["args"].contains_key("raw_response") {
         print_response_json(&result, false);
@@ -146,10 +151,8 @@ pub fn execute_request(
     let mut response_context = HashMap::new();
     response_context.insert(String::from("response"), result.clone());
     let complete_context = get_complete_context(response_context, context.clone());
-    if !context["args"].contains_key("quiet") {
-        print!(
-            "{}",
-            template_parser.get_compiled_template_with_context(template, complete_context)
-        );
-    }
+    print!(
+        "{}",
+        template_parser.get_compiled_template_with_context(template, complete_context)
+    );
 }
