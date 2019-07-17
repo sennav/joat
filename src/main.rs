@@ -135,7 +135,8 @@ fn main() {
                 _ => {
                     // Could not find command, just print help
                     app.print_help().unwrap();
-                    panic!("Could not find command");
+                    println!("");
+                    ::std::process::exit(1);
                 }
             }
         }
