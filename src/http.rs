@@ -23,9 +23,16 @@ fn stringify(query: Vec<(String, String)>) -> String {
     query_params
 }
 
+fn get_string_from_value(value: &Value) -> &str {
+    match value.as_str() {
+        Some(s) => s,
+        None => "",
+    }
+}
+
 fn get_endpoint_with_qp(
     endpoint: String,
-    query_params: &HashMap<String, String>,
+    query_params: &HashMap<String, Value>,
     context: &HashMap<String, HashMap<String, String>>,
 ) -> String {
     if endpoint.contains("?") || query_params.is_empty() {
@@ -33,11 +40,14 @@ fn get_endpoint_with_qp(
     }
     let mut param_vec = Vec::new();
     for (key, value) in query_params {
-        if value.is_empty() {
+        if value.is_null() {
             continue;
         }
-        let parsed_qp_value = template::get_compiled_template_str_with_context(&value, &context)
-            .expect("Error parsing query param option, check your template");
+        let parsed_qp_value = template::get_compiled_template_str_with_context(
+            &get_string_from_value(value).to_string(),
+            &context,
+        )
+        .expect("Error parsing query param option, check your template");
         param_vec.push((key.clone(), parsed_qp_value));
     }
     format!("{}?{}", endpoint, stringify(param_vec))
@@ -47,7 +57,7 @@ pub fn get_endpoint(
     cmd_name: &str,
     context: &HashMap<String, HashMap<String, String>>,
     yaml: &Yaml,
-    query_params: &HashMap<String, String>,
+    query_params: &HashMap<String, Value>,
 ) -> String {
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
     let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
@@ -81,18 +91,19 @@ fn get_method(method: &String) -> Method {
 pub fn request(
     method: &String,
     endpoint: &String,
-    headers: &HashMap<String, String>,
+    headers: &HashMap<String, Value>,
     body: &HashMap<String, Value>,
 ) -> Response {
     let client = reqwest::Client::new();
     let reqwest_method = get_method(&method);
-    let mut client_get = client.request(reqwest_method, endpoint);
+    let mut request = client.request(reqwest_method, endpoint);
     for (name, value) in headers.iter() {
-        client_get = client_get.header(&name[..], &value[..]);
+        let header_value = get_string_from_value(value);
+        request = request.header(&name[..], header_value);
     }
-    client_get = client_get.json(&body);
+    request = request.json(&body);
 
-    let response = match client_get.send() {
+    let response = match request.send() {
         Ok(t) => t,
         Err(e) => {
             println!("Could not get response for endpoint {}", endpoint);
@@ -140,7 +151,7 @@ mod tests {
         // Arrange
         let endpoint = String::from("http://example.com/path");
         let mut query_params = HashMap::new();
-        query_params.insert(String::from("foo"), String::from("bar"));
+        query_params.insert(String::from("foo"), Value::String("bar".to_string()));
         let context = HashMap::new();
 
         // Act

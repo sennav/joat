@@ -1,7 +1,11 @@
 use crate::template;
+use serde_json::map::Map;
+use serde_json::value::Value;
+use serde_json::Number;
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
 use yaml_rust::{Yaml, YamlLoader};
 
 fn merge_hash(overrider: &BTreeMap<Yaml, Yaml>, overriden: &BTreeMap<Yaml, Yaml>) -> Yaml {
@@ -362,29 +366,104 @@ pub fn get_string_from_yaml(yaml: &Yaml) -> String {
     }
 }
 
+fn get_value_from_yaml_hash(
+    btree_map: &BTreeMap<Yaml, Yaml>,
+    context: &HashMap<String, HashMap<String, String>>,
+) -> Value {
+    let mut value_map = Map::new();
+    for (key, value) in btree_map.iter() {
+        let key_str = get_string_from_yaml(key);
+        let v_value = match get_value_from_yaml(value, context) {
+            Some(v) => v,
+            None => continue,
+        };
+        value_map.insert(key_str, v_value);
+    }
+    Value::from(value_map)
+}
+
+fn get_value_from_yaml_array(
+    yaml_vec: &Vec<Yaml>,
+    context: &HashMap<String, HashMap<String, String>>,
+) -> Value {
+    let mut value_vec = Vec::new();
+    for value in yaml_vec.iter() {
+        let v_value = match get_value_from_yaml(value, context) {
+            Some(v) => v,
+            None => continue,
+        };
+        value_vec.push(v_value);
+    }
+    Value::from(value_vec)
+}
+
+fn get_value_from_yaml_string(
+    yaml_str: &String,
+    context: &HashMap<String, HashMap<String, String>>,
+) -> Option<Value> {
+    let templated_str = match template::get_compiled_template_str_with_context(&yaml_str, context) {
+        Ok(t) => t,
+        Err(_e) => return None,
+    };
+    if templated_str == "true" || templated_str == "false" {
+        let bool_value =
+            FromStr::from_str(&templated_str).expect("Could not convert boolean value in body");
+        return Some(Value::Bool(bool_value));
+    }
+    let value = match serde_json::from_str::<Number>(&templated_str) {
+        Ok(n) => Value::Number(n),
+        Err(_e) => Value::String(templated_str),
+    };
+    Some(value)
+}
+
+fn get_value_from_yaml(
+    yaml: &Yaml,
+    context: &HashMap<String, HashMap<String, String>>,
+) -> Option<Value> {
+    match yaml {
+        Yaml::Hash(y) => Some(get_value_from_yaml_hash(y, context)),
+        Yaml::Array(y) => Some(get_value_from_yaml_array(y, context)),
+        Yaml::String(y) => get_value_from_yaml_string(y, context),
+        Yaml::Integer(y) => Some(Value::from(y.clone())),
+        Yaml::Boolean(y) => Some(Value::from(y.clone())),
+        _ => Some(Value::Null),
+    }
+}
+
 pub fn get_hash_from_yaml(
     yaml: &Yaml,
     context: &HashMap<String, HashMap<String, String>>,
-) -> HashMap<String, String> {
-    let yaml_btree = match yaml.clone().into_hash() {
-        Some(t) => t,
-        None => {
-            if yaml.is_badvalue() {
-                return HashMap::new();
-            }
-            panic!("Failed to convert to hash map, exiting.");
-        }
-    };
+    deep: bool,
+) -> HashMap<String, Value> {
+    if yaml.is_badvalue() {
+        return HashMap::new();
+    }
+    let yaml_btree = yaml
+        .clone()
+        .into_hash()
+        .expect("Yaml should be a map value");
     let mut yaml_hash = HashMap::new();
     for (key, value) in yaml_btree.iter() {
         let str_key = get_string_from_yaml(key);
-        let value_str = get_string_from_yaml(value);
-        let parsed_value =
-            match template::get_compiled_template_str_with_context(&value_str, &context) {
-                Ok(t) => t,
+        if deep {
+            let v_value = match get_value_from_yaml(value, context) {
+                Some(v) => v,
+                None => continue,
+            };
+            yaml_hash.insert(str_key, v_value);
+        } else {
+            let raw_string = match value {
+                Yaml::String(v) => v,
+                _ => panic!("Only string values are allowed for {}", str_key),
+            };
+            let str_option = template::get_compiled_template_str_with_context(&raw_string, context);
+            let str_value = match str_option {
+                Ok(s) => s,
                 Err(_e) => continue,
             };
-        yaml_hash.insert(str_key, parsed_value);
+            yaml_hash.insert(str_key, Value::String(str_value));
+        }
     }
     return yaml_hash;
 }
