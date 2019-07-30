@@ -62,7 +62,7 @@ impl Template {
     }
 
     pub fn get_compiled_template_with_context<T>(
-        &mut self,
+        self,
         template: String,
         context_hashes: HashMap<String, T>,
     ) -> String

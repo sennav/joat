@@ -30,6 +30,22 @@ fn print_response_json(result: &Value, pretty: bool) {
     }
 }
 
+fn print_response_template(
+    template: String,
+    app_name: &String,
+    context: HashMap<String, HashMap<String, String>>,
+    result: Value,
+) {
+    let template_parser = template::Template::new(app_name);
+    let mut response_context = HashMap::new();
+    response_context.insert(String::from("response"), result.clone());
+    let complete_context = get_complete_context(response_context, context.clone());
+    print!(
+        "{}",
+        template_parser.get_compiled_template_with_context(template, complete_context)
+    );
+}
+
 fn get_complete_context(
     mut response_context: HashMap<String, Value>,
     general_context: HashMap<String, HashMap<String, String>>,
@@ -110,29 +126,21 @@ pub fn execute_request(
         return;
     }
 
-    let mut template: String;
     if context["args"].contains_key("template") {
-        template = context["args"]["template"].clone();
+        let template = context["args"]["template"].clone();
         if template == "json" {
             print_response_json(&result, true);
-            return;
+        } else {
+            print_response_template(template, app_name, context, result);
         }
     } else if subcmd_hash.contains_key(&Yaml::from_str("response_template")) {
-        template = subcmd_yaml["response_template"]
+        let response_template = subcmd_yaml["response_template"]
             .clone()
             .into_string()
             .unwrap();
+        print_response_template(response_template, app_name, context, result);
     } else {
         print_response_json(&result, true);
         return;
     }
-
-    let mut template_parser = template::Template::new(app_name); // TODO remove mut
-    let mut response_context = HashMap::new();
-    response_context.insert(String::from("response"), result.clone());
-    let complete_context = get_complete_context(response_context, context.clone());
-    print!(
-        "{}",
-        template_parser.get_compiled_template_with_context(template, complete_context)
-    );
 }
