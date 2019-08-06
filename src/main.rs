@@ -92,11 +92,6 @@ fn execute(app: App, app_name: &String, cmd_name: &str, args: &ArgMatches, yaml:
         return;
     }
 
-    if app_name == "joat" && cmd_name == "init" {
-        joat_scmds::install(context);
-        return;
-    }
-
     if cmd_name == "auto_complete" {
         joat_scmds::execute_auto_complete(app, app_name, context);
         return;

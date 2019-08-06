@@ -26,7 +26,7 @@ The syntax of the templates is Jinja2, you can read more about it [Tera's docume
 As this is work in progress there's no packaging of the binaries, it's necessary to compile the rust source code.
 To do that you'll need [rust's tools](https://www.rust-lang.org/tools/install) and execute this:
 
-```
+```bash
 git clone <this repo url>
 cd joat
 cargo build --release
@@ -40,13 +40,32 @@ Joat is not very useful in itself, so you have to create an extension.
 
 Just execute:
 
-```
+```bash
 # Create an yaml file with the name of your cli
 joat init <name of your cli>
 # symlink joat binaries to your cli name (it has to be the same name as the yaml)
 ln -s target/release/joat /usr/local/bin/<name of your cli>
 # optionally define templates
 mkdir templates && touch templates/sample.j2
+```
+
+## Installing an existing extension
+
+The long version:
+```bash
+# Say the extension github page lives in https://github.com/sennav/.gitlab.joat
+cd $HOME && git clone https://github.com/sennav/.gitlab.joat
+JOAT_PATH=$(which joat)
+BIN_PATH=$(which joat | sed 's/joat$//')
+ln -s "$JOAT_BIN_PATH" "${BIN_PATH}gitlab"
+gitlab --help # Test if it works
+```
+
+Or use the install command that basically does the same thing:
+```bash
+# Say the extension github page lives in https://github.com/sennav/.gitlab.joat
+joat install sennav/.gitlab.joat
+gitlab --help # Test if it works
 ```
 
 ## Config yaml
@@ -101,13 +120,8 @@ subcommands:
             gitlab show {{args.ISSUE_ID}}
 ```
 
-## Contributing
-
-Be polite, I'm not earning anything to do this, other than that just create an issue or a PR and we'll take it from there.
-
 ## TODO
 
-- [ ] Init subcommand
 - [ ] Standard OAuth 2 capabilities
 - [ ] Investigate other auth methods
 - [ ] Tests

@@ -3,15 +3,38 @@ version: "0.0.1"
 author: Vinicius <senna.vmd@gmail.com>
 about: Jack of all trades - CLI tools for REST APIs
 subcommands:
+    - init:
+        # Executed by rust binaries
+        about: create a yaml config file to bootstrap your extension
+        args:
+            - PROJECT_NAME:
+                help: Project name (like username/project)
+                required: true
     - install:
         about: install a joat project
         args:
             - PROJECT_NAME:
                 help: Project name
                 required: true
-    - init:
-        about: create a yaml config file to bootstrap your extension
+        script: |
+            PROJECT_NAME="{{args.PROJECT_NAME}}"
+            regex="[a-zA-Z0-9_]*\/\.{0,1}([a-zA-Z0-9_]*)[.joat]{0,1}"
+            NEW_COMMAND_NAME=$([[ $PROJECT_NAME =~ $regex ]] && echo "${BASH_REMATCH[1]}")
+            curl -s "https://github.com/$PROJECT_NAME/archive/master.zip" -L -o temp.zip
+            unzip -q temp.zip -d "$HOME/.${NEW_COMMAND_NAME}.joat"
+            rm temp.zip
+            JOAT_BIN_PATH=$(which joat)
+            BIN_PATH=$(which joat | sed 's/joat$//')
+            ln -s "$JOAT_BIN_PATH" "${BIN_PATH}${NEW_COMMAND_NAME}"
+    - uninstall:
+        about: uninstall a joat project from the home folder
         args:
             - PROJECT_NAME:
-                help: Project name
+                help: Command name
                 required: true
+        script: |
+            PROJECT_NAME="{{args.PROJECT_NAME}}"
+            rm -rf "$HOME/.${PROJECT_NAME}.joat"
+            JOAT_BIN_PATH=$(which joat)
+            BIN_PATH=$(which joat | sed 's/joat$//')
+            rm "${BIN_PATH}${PROJECT_NAME}"

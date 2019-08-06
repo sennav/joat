@@ -4,10 +4,6 @@ use std::fs;
 
 use crate::template;
 
-pub fn install(context: HashMap<String, HashMap<String, String>>) {
-    println!("Install something");
-}
-
 pub fn execute_init(context: HashMap<String, HashMap<String, String>>) {
     let init_template = String::from(include_str!("../templates/config_template.yml"));
     let yaml_str = template::get_compiled_template_str_with_context(&init_template, &context)
