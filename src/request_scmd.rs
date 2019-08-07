@@ -43,7 +43,7 @@ fn get_complete_context(
     for (key, inner_hashmap) in general_context {
         let mut map = Map::new();
         for (ikey, ivalue) in inner_hashmap {
-            map.insert(ikey, Value::String(ivalue));
+            map.insert(ikey, ivalue);
         }
         response_context.insert(key, Value::Object(map));
     }
@@ -121,7 +121,11 @@ pub fn execute_request(
         if template == "json" {
             print_response_json(&result, true);
         } else {
-            print_response_template(template, app_name, context, result);
+            let template_str = template
+                .as_str() // avoids quotes on the string
+                .expect("Could not convert template str")
+                .to_string();
+            print_response_template(template_str, app_name, context, result);
         }
     } else if subcmd_hash.contains_key(&Yaml::from_str("response_template")) {
         let response_template = subcmd_yaml["response_template"]

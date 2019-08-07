@@ -17,13 +17,14 @@ pub fn execute_init(context: Context) {
 pub fn execute_auto_complete(mut app: App, app_name: &str, context: Context) {
     let selected_shell = &context["args"]["SHELL"];
     let shell;
-    match selected_shell.as_ref() {
+    let lower_selected_shell = selected_shell.to_string().to_lowercase();
+    match lower_selected_shell.as_str() {
         "zsh" => shell = Shell::Zsh,
         "bash" => shell = Shell::Bash,
         "fish" => shell = Shell::Fish,
         "powershell" => shell = Shell::PowerShell,
         "elvish" => shell = Shell::Elvish,
-        _ => panic!("Unknown shell, use only lowercase"),
+        _ => panic!("Unknown shell"),
     };
     app.gen_completions(app_name, shell, ".")
 }
