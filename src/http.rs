@@ -5,8 +5,7 @@ use std::collections::HashMap;
 use std::vec::Vec;
 use yaml_rust::Yaml;
 
-use crate::template;
-use crate::yaml;
+use crate::{template, yaml, Context};
 
 fn get_complete_endpoint(base_endpoint: &Yaml, path_yaml: &Yaml) -> String {
     let mut endpoint = yaml::get_string_from_yaml(base_endpoint);
@@ -33,7 +32,7 @@ fn get_string_from_value(value: &Value) -> &str {
 fn get_endpoint_with_qp(
     endpoint: String,
     query_params: &HashMap<String, Value>,
-    context: &HashMap<String, HashMap<String, String>>,
+    context: &Context,
 ) -> String {
     if endpoint.contains("?") || query_params.is_empty() {
         return endpoint;
@@ -55,7 +54,7 @@ fn get_endpoint_with_qp(
 
 pub fn get_endpoint(
     cmd_name: &str,
-    context: &HashMap<String, HashMap<String, String>>,
+    context: &Context,
     yaml: &Yaml,
     query_params: &HashMap<String, Value>,
 ) -> String {

@@ -1,10 +1,9 @@
 use clap::{App, Shell};
-use std::collections::HashMap;
 use std::fs;
 
-use crate::template;
+use crate::{template, Context};
 
-pub fn execute_init(context: HashMap<String, HashMap<String, String>>) {
+pub fn execute_init(context: Context) {
     let init_template = String::from(include_str!("../templates/config_template.yml"));
     let yaml_str = template::get_compiled_template_str_with_context(&init_template, &context)
         .expect("Could not create yaml template");
@@ -15,11 +14,7 @@ pub fn execute_init(context: HashMap<String, HashMap<String, String>>) {
     println!("To start testing with your extension create a symlink in your PATH targeting joat binaries with name: {}", cmd_name);
 }
 
-pub fn execute_auto_complete(
-    mut app: App,
-    app_name: &str,
-    context: HashMap<String, HashMap<String, String>>,
-) {
+pub fn execute_auto_complete(mut app: App, app_name: &str, context: Context) {
     let selected_shell = &context["args"]["SHELL"];
     let shell;
     match selected_shell.as_ref() {

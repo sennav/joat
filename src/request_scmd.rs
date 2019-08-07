@@ -3,14 +3,9 @@ use serde_json::Map;
 use std::collections::HashMap;
 use yaml_rust::Yaml;
 
-use crate::{http, oauth, template, yaml};
+use crate::{http, oauth, template, yaml, Context};
 
-fn get_parsed_yaml_key(
-    key: &str,
-    yaml: &Yaml,
-    error_str: &str,
-    context: &HashMap<String, HashMap<String, String>>,
-) -> String {
+fn get_parsed_yaml_key(key: &str, yaml: &Yaml, error_str: &str, context: &Context) -> String {
     template::get_compiled_template_str_with_context(
         &yaml[key].clone().into_string().expect(error_str),
         context,
@@ -30,12 +25,7 @@ fn print_response_json(result: &Value, pretty: bool) {
     }
 }
 
-fn print_response_template(
-    template: String,
-    app_name: &String,
-    context: HashMap<String, HashMap<String, String>>,
-    result: Value,
-) {
+fn print_response_template(template: String, app_name: &String, context: Context, result: Value) {
     let template_parser = template::Template::new(app_name);
     let mut response_context = HashMap::new();
     response_context.insert(String::from("response"), result.clone());
@@ -48,7 +38,7 @@ fn print_response_template(
 
 fn get_complete_context(
     mut response_context: HashMap<String, Value>,
-    general_context: HashMap<String, HashMap<String, String>>,
+    general_context: Context,
 ) -> HashMap<String, Value> {
     for (key, inner_hashmap) in general_context {
         let mut map = Map::new();
@@ -65,7 +55,7 @@ pub fn execute_request(
     cmd_name: &str,
     yaml: &Yaml,
     subcmd_yaml: &Yaml,
-    context: HashMap<String, HashMap<String, String>>,
+    context: Context,
 ) {
     let subcmd_hash = subcmd_yaml
         .clone()

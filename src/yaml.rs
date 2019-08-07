@@ -8,6 +8,8 @@ use std::path::Path;
 use std::str::FromStr;
 use yaml_rust::{Yaml, YamlLoader};
 
+use crate::Context;
+
 fn merge_hash(overrider: &BTreeMap<Yaml, Yaml>, overriden: &BTreeMap<Yaml, Yaml>) -> Yaml {
     let sub_key = Yaml::String(String::from("subcommands"));
     let r_subcmd = overrider[&sub_key]
@@ -366,10 +368,7 @@ pub fn get_string_from_yaml(yaml: &Yaml) -> String {
     }
 }
 
-fn get_value_from_yaml_hash(
-    btree_map: &BTreeMap<Yaml, Yaml>,
-    context: &HashMap<String, HashMap<String, String>>,
-) -> Value {
+fn get_value_from_yaml_hash(btree_map: &BTreeMap<Yaml, Yaml>, context: &Context) -> Value {
     let mut value_map = Map::new();
     for (key, value) in btree_map.iter() {
         let key_str = get_string_from_yaml(key);
@@ -382,10 +381,7 @@ fn get_value_from_yaml_hash(
     Value::from(value_map)
 }
 
-fn get_value_from_yaml_array(
-    yaml_vec: &Vec<Yaml>,
-    context: &HashMap<String, HashMap<String, String>>,
-) -> Value {
+fn get_value_from_yaml_array(yaml_vec: &Vec<Yaml>, context: &Context) -> Value {
     let mut value_vec = Vec::new();
     for value in yaml_vec.iter() {
         let v_value = match get_value_from_yaml(value, context) {
@@ -397,10 +393,7 @@ fn get_value_from_yaml_array(
     Value::from(value_vec)
 }
 
-fn get_value_from_yaml_string(
-    yaml_str: &String,
-    context: &HashMap<String, HashMap<String, String>>,
-) -> Option<Value> {
+fn get_value_from_yaml_string(yaml_str: &String, context: &Context) -> Option<Value> {
     let templated_str = match template::get_compiled_template_str_with_context(&yaml_str, context) {
         Ok(t) => t,
         Err(_e) => return None,
@@ -417,10 +410,7 @@ fn get_value_from_yaml_string(
     Some(value)
 }
 
-fn get_value_from_yaml(
-    yaml: &Yaml,
-    context: &HashMap<String, HashMap<String, String>>,
-) -> Option<Value> {
+fn get_value_from_yaml(yaml: &Yaml, context: &Context) -> Option<Value> {
     match yaml {
         Yaml::Hash(y) => Some(get_value_from_yaml_hash(y, context)),
         Yaml::Array(y) => Some(get_value_from_yaml_array(y, context)),
@@ -431,11 +421,7 @@ fn get_value_from_yaml(
     }
 }
 
-pub fn get_hash_from_yaml(
-    yaml: &Yaml,
-    context: &HashMap<String, HashMap<String, String>>,
-    deep: bool,
-) -> HashMap<String, Value> {
+pub fn get_hash_from_yaml(yaml: &Yaml, context: &Context, deep: bool) -> HashMap<String, Value> {
     if yaml.is_badvalue() {
         return HashMap::new();
     }

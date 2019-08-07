@@ -4,10 +4,12 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
-use tera::{Context, Error, Tera};
+use tera::{Context as TeraContext, Error, Tera};
 
-fn get_tera_context(context: &HashMap<String, HashMap<String, String>>) -> Context {
-    let mut tera_context = Context::new();
+use crate::Context;
+
+fn get_tera_context(context: &Context) -> TeraContext {
+    let mut tera_context = TeraContext::new();
     for (k, v) in context.iter() {
         tera_context.insert(k, &v);
     }
@@ -16,7 +18,7 @@ fn get_tera_context(context: &HashMap<String, HashMap<String, String>>) -> Conte
 
 pub fn get_compiled_template_str_with_context(
     template: &String,
-    raw_context: &HashMap<String, HashMap<String, String>>,
+    raw_context: &Context,
 ) -> Result<String, Error> {
     let context = get_tera_context(raw_context);
 
@@ -70,7 +72,7 @@ impl Template {
         T: DeserializeOwned,
         T: Serialize,
     {
-        let mut context = Context::new();
+        let mut context = TeraContext::new();
         for (key, value) in context_hashes.iter() {
             context.insert(&key, &value);
         }

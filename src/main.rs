@@ -21,6 +21,8 @@ mod script_scmd;
 mod template;
 mod yaml;
 
+type Context = HashMap<String, HashMap<String, String>>;
+
 fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> HashMap<String, String> {
     let mut args_context = HashMap::new();
     for arg in subcmd_yaml["args"].clone().into_iter() {

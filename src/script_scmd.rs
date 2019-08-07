@@ -1,11 +1,10 @@
-use std::collections::HashMap;
 use std::env;
 use std::io::{self, Write};
 use std::process::Command;
 use terminal_size::{terminal_size, Height, Width};
 use yaml_rust::Yaml;
 
-use crate::template;
+use crate::{template, Context};
 
 const RECUSRION_COUNT_VAR_NAME: &str = "JOAT_RECURSION_COUNT";
 const COLUMNS_ENV_VAR_NAME: &str = "COLUMNS";
@@ -47,11 +46,7 @@ fn check_recursion_count(yaml: &Yaml) -> i64 {
     return recursion_count + 1;
 }
 
-pub fn execute_script(
-    context: HashMap<String, HashMap<String, String>>,
-    subcmd_yaml: &Yaml,
-    yaml: &Yaml,
-) {
+pub fn execute_script(context: Context, subcmd_yaml: &Yaml, yaml: &Yaml) {
     let script_string = subcmd_yaml["script"]
         .clone()
         .into_string()
