@@ -31,8 +31,20 @@ fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> InnerContext {
         for a in arg.into_hash().unwrap().keys() {
             let key = a.clone().into_string().unwrap();
             if args.is_present(&key) {
-                let value = args.value_of(&key).unwrap_or("");
-                args_context.insert(key, Value::from(value));
+                if let Some(m_values) = args.values_of(&key) {
+                    let str_vec: Vec<&str> = m_values.collect();
+                    let values: Vec<Value> = str_vec
+                        .iter()
+                        .map(|s| Value::String(s.to_string()))
+                        .collect();
+                    if values.len() > 1 {
+                        args_context.insert(key, Value::Array(values));
+                        continue;
+                    }
+                }
+                if let Some(value) = args.value_of(&key) {
+                    args_context.insert(key, Value::from(value));
+                }
             }
         }
     }
