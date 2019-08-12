@@ -344,6 +344,23 @@ fn override_version(app_name: &String, config: Yaml) -> Yaml {
     Yaml::Hash(config_btree)
 }
 
+fn create_default_config() {
+    let yaml_string = String::from(include_str!("../joat.yml"));
+    let home_dir_path = match dirs::home_dir() {
+        Some(h) => h,
+        _ => panic!("No home dir"),
+    };
+    let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
+    let joat_config_path = format!("{}/.joat.joat", home_dir_str);
+    match fs::create_dir_all(&joat_config_path) {
+        Ok(_v) => (),
+        Err(e) => panic!("Could not create config folder {:?}", e),
+    };
+
+    let filename = format!("{}/joat.yml", joat_config_path);
+    fs::write(filename, &yaml_string).expect("Unable to write file");
+}
+
 pub fn get_yaml_config(app_name: &String) -> Yaml {
     let home_config = get_home_config(app_name);
     let local_config = get_local_config(app_name);
@@ -352,6 +369,10 @@ pub fn get_yaml_config(app_name: &String) -> Yaml {
         (Some(h), None) => h,
         (None, Some(l)) => l,
         (None, None) => {
+            if app_name == "joat" {
+                create_default_config();
+                return get_yaml_config(&app_name);
+            }
             panic!("Could not find config file");
         }
     };
