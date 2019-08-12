@@ -27,10 +27,7 @@ As this is work in progress there's no packaging of the binaries, it's necessary
 To do that you'll need [rust's tools](https://www.rust-lang.org/tools/install) and execute this:
 
 ```bash
-git clone <this repo url>
-cd joat
-cargo build --release
-target/release/joat --help
+cargo install joat
 ```
 
 As you see after executing these commands the binaries will be at `target/release/joat`.
@@ -42,11 +39,13 @@ Just execute:
 
 ```bash
 # Create an yaml file with the name of your cli
-joat init <name of your cli>
+joat init <name_of_your_cli>
 # symlink joat binaries to your cli name (it has to be the same name as the yaml)
-ln -s target/release/joat /usr/local/bin/<name of your cli>
+ln -s target/release/joat /usr/local/bin/<name_of_your_cli>
 # optionally define templates
 mkdir templates && touch templates/sample.j2
+# Test if it works
+<name_of_your_cli> --help
 ```
 
 ## Installing an existing extension
@@ -119,10 +118,3 @@ subcommands:
         script: |
             gitlab show {{args.ISSUE_ID}}
 ```
-
-## TODO
-
-- [ ] Standard OAuth 2 capabilities
-- [ ] Investigate other auth methods
-- [ ] Tests
-- [ ] Public release
