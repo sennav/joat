@@ -74,7 +74,9 @@ pub fn execute_request(
 
     let body = yaml::get_hash_from_yaml(&subcmd_yaml["body"], &context, true);
 
-    let query_params = yaml::get_hash_from_yaml(&subcmd_yaml["query_params"], &context, false);
+    let query_params_yaml =
+        yaml::combine_hash_yaml(&subcmd_yaml["query_params"], &yaml["query_params"]);
+    let query_params = yaml::get_hash_from_yaml(&query_params_yaml, &context, false);
 
     let endpoint = http::get_endpoint(&cmd_name, &context, &yaml, &query_params);
 

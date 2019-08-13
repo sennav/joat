@@ -10,15 +10,16 @@ use yaml_rust::{Yaml, YamlLoader};
 
 use crate::Context;
 
-fn merge_hash(overrider: &BTreeMap<Yaml, Yaml>, overriden: &BTreeMap<Yaml, Yaml>) -> Yaml {
-    let sub_key = Yaml::String(String::from("subcommands"));
-    let r_subcmd = overrider[&sub_key]
-        .clone()
+fn combine_yaml_scmd_arrays(overrider: Yaml, overriden: Yaml) -> Yaml {
+    let mut result = Vec::new();
+    let mut result_map = BTreeMap::new();
+    let overrider_vec = overrider
         .into_vec()
         .expect("Subcommands should be an array");
-    let mut cmds = Vec::new();
-    let mut r_map = BTreeMap::new();
-    for value in r_subcmd {
+    let overriden_vec = overriden
+        .into_vec()
+        .expect("Subcommands should be an array");
+    for value in overrider_vec {
         let scmd_hash = value
             .clone()
             .into_hash()
@@ -27,43 +28,63 @@ fn merge_hash(overrider: &BTreeMap<Yaml, Yaml>, overriden: &BTreeMap<Yaml, Yaml>
             .keys()
             .nth(0)
             .expect(&format!("Invalid subcommand name {:?}", scmd_hash));
-        r_map.insert(scmd_name.to_owned(), true);
-        cmds.push(value);
+        result_map.insert(scmd_name.to_owned(), true);
+        result.push(value);
     }
-    let n_subcmd = overriden[&sub_key]
-        .clone()
-        .into_vec()
-        .expect("Subcommands should be an array");
-    for v in n_subcmd {
+    for v in overriden_vec {
         let scmd_hash = v.as_hash().expect(&format!("Invalid subcommand {:?}", v));
         let scmd_name = scmd_hash
             .keys()
             .nth(0)
             .expect(&format!("Invalid subcommand name {:?}", scmd_hash));
 
-        if !r_map.contains_key(scmd_name) {
-            cmds.push(v);
+        if !result_map.contains_key(scmd_name) {
+            result.push(v);
         }
     }
+    return Yaml::Array(result);
+}
 
+fn merge_btreemaps(
+    overrider: &BTreeMap<Yaml, Yaml>,
+    overriden: &BTreeMap<Yaml, Yaml>,
+) -> BTreeMap<Yaml, Yaml> {
     let mut result = BTreeMap::new();
     for (k, v) in overrider.iter() {
         result.insert(k.clone(), v.clone());
     }
-    for (k, v) in overrider.iter() {
+    for (k, v) in overriden.iter() {
         if !result.contains_key(v) {
             result.insert(k.clone(), v.clone());
         }
     }
-    result.insert(sub_key, Yaml::Array(cmds));
-    return Yaml::Hash(result);
+    return result;
 }
 
-fn combine_yaml(overrider: &Yaml, overriden: &Yaml) -> Yaml {
+fn merge_scmd_hash(overrider: &BTreeMap<Yaml, Yaml>, overriden: &BTreeMap<Yaml, Yaml>) -> Yaml {
+    let sub_key = Yaml::String(String::from("subcommands"));
+    let scmds = combine_yaml_scmd_arrays(overrider[&sub_key].clone(), overriden[&sub_key].clone());
+
+    let mut new_config = merge_btreemaps(overrider, overriden);
+    new_config.insert(sub_key, scmds);
+    return Yaml::Hash(new_config);
+}
+
+fn combine_scmd_yaml(overrider: &Yaml, overriden: &Yaml) -> Yaml {
     match (overrider, overriden) {
-        (Yaml::Hash(r), Yaml::Hash(n)) => merge_hash(&r, &n),
+        (Yaml::Hash(r), Yaml::Hash(n)) => merge_scmd_hash(&r, &n),
         _ => return overrider.clone(),
     }
+}
+
+pub fn combine_hash_yaml(overrider: &Yaml, overriden: &Yaml) -> Yaml {
+    let combined = match (overrider, overriden) {
+        (Yaml::Hash(r), Yaml::Hash(n)) => merge_btreemaps(&r, &n),
+        (Yaml::Hash(r), Yaml::BadValue) => merge_btreemaps(&r, &BTreeMap::new()),
+        (Yaml::BadValue, Yaml::Hash(n)) => merge_btreemaps(&n, &BTreeMap::new()),
+        _ => return overrider.clone(),
+    };
+    return Yaml::Hash(combined);
 }
 
 fn add_subcommands_path(config: Yaml, path: &String) -> Yaml {
@@ -362,12 +383,12 @@ fn create_default_config() {
 }
 
 pub fn get_yaml_config(app_name: &String) -> Yaml {
-    let home_config = get_home_config(app_name);
     let local_config = get_local_config(app_name);
-    let partial_config = match (home_config, local_config) {
-        (Some(h), Some(l)) => combine_yaml(&h, &l),
-        (Some(h), None) => h,
-        (None, Some(l)) => l,
+    let home_config = get_home_config(app_name);
+    let partial_config = match (local_config, home_config) {
+        (Some(l), Some(h)) => combine_scmd_yaml(&l, &h),
+        (Some(l), None) => l,
+        (None, Some(h)) => h,
         (None, None) => {
             if app_name == "joat" {
                 create_default_config();
