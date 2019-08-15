@@ -67,6 +67,12 @@ joat install sennav/.gitlab.joat
 gitlab --help # Test if it works
 ```
 
+## Sample extensions
+
+* [Trello](https://github.com/sennav/trello.joat)
+* [Wunder](https://github.com/sennav/wunder.joat)
+* [Gitlab](https://github.com/sennav/gitlab.joat)
+
 ## Config yaml
 
 Sample yaml file:
