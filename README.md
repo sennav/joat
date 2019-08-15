@@ -34,7 +34,6 @@ To do that you'll need [rust's tools](https://www.rust-lang.org/tools/install) a
 cargo install joat
 ```
 
-As you see after executing these commands the binaries will be at `target/release/joat`.
 Joat is not very useful in itself, so you have to create an extension.
 
 ## Creating an extension
@@ -127,4 +126,27 @@ subcommands:
                 index: 1
         script: |
             gitlab show {{args.ISSUE_ID}}
+```
+
+## Joat subcommands
+
+```
+joat 0.0.2
+Vinicius <senna.vmd@gmail.com>
+Jack of all trades - CLI tools for REST APIs
+
+USAGE:
+    joat [SUBCOMMAND]
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    auto_complete    Create auto complete script
+    help             Prints this message or the help of the given subcommand(s)
+    init             create a yaml config file to bootstrap your extension
+    install          install a joat project
+    uninstall        uninstall a joat project from the home folder
+
 ```
