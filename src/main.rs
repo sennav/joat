@@ -44,6 +44,9 @@ fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> InnerContext {
                 }
                 if let Some(value) = args.value_of(&key) {
                     args_context.insert(key, Value::from(value));
+                } else {
+                    // Argument present, takes no value
+                    args_context.insert(key, Value::from(true));
                 }
             }
         }
