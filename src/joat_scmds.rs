@@ -7,7 +7,8 @@ pub fn execute_init(context: Context) {
     let init_template = String::from(include_str!("../templates/config_template.yml"));
     let yaml_str = template::get_compiled_template_str_with_context(&init_template, &context)
         .expect("Could not create yaml template");
-    let cmd_name = &context["args"]["PROJECT_NAME"];
+    let raw_cmd_name = &context["args"]["PROJECT_NAME"];
+    let cmd_name = raw_cmd_name.as_str().expect("Project is not string");
     let filename = format!("{}.yml", cmd_name);
     fs::write(filename, yaml_str).expect("Unable to write file");
     println!("Config file {}.yml created", cmd_name);
