@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/sennav/joat.svg?token=gvqDsu5Cy69X2ywTP4E2&branch=dev)](https://travis-ci.com/sennav/joat)
 
-Joat is designed to ease the creation of command line interfaces for REST APIs and
+Joat is designed to ease the creation of customizable command line interfaces for REST APIs and
 enable automation around these REST APIs.
 The program is written in rust and it's pretty much a work in progress, expect errors and breaking changes.
 Joat is heavily inspired by [go-jira](https://github.com/go-jira/jira) and uses a lot of powerful rust libraries.
@@ -20,6 +20,10 @@ Some key attributes of this YAML file are treated as templates,
 so you can use values defined in environment variables, arguments and more to define what should be send in the request or handled in the script.
 The syntax of the templates is Jinja2, you can read more about it [Tera's documentation](https://tera.netlify.com/)
 (the rust library used to do this).
+
+See more about the trello example in this video:
+
+[![Introducing Joat](http://img.youtube.com/vi/_jA8mYOtf4A/0.jpg)](http://www.youtube.com/watch?v=_jA8mYOtf4A "Introducing Joat")
 
 ## Installation
 
