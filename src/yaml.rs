@@ -135,7 +135,7 @@ fn get_local_config(cmd_name: &String) -> Option<Yaml> {
     let prod_path = String::from(format!(".{}.joat/", cmd_name));
     match get_config_from(&cmd_name, &prod_path) {
         Some(c) => Some(c),
-        None => get_config_from(&cmd_name, &String::from("")),
+        None => get_config_from(&cmd_name, &String::from("./")),
     }
 }
 
