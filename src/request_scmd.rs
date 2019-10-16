@@ -102,10 +102,18 @@ pub fn execute_request(
     }
 
     let mut response = http::request(&http_method, &endpoint, &headers, &body);
-    let result: Value = response.json().expect(&format!(
-        "Could not convert response {:?} to json",
-        response
-    ));
+    let result: Value = match response.json() {
+        Ok(r) => r,
+        Err(_e) => {
+            println!(
+                "{}",
+                response
+                    .text()
+                    .expect("Could not convert response to json or text")
+            );
+            return;
+        }
+    };
 
     // Quiet
     if context["args"].contains_key("quiet") {
