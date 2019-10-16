@@ -54,7 +54,7 @@ fn merge_btreemaps(
         result.insert(k.clone(), v.clone());
     }
     for (k, v) in overriden.iter() {
-        if !result.contains_key(v) {
+        if !result.contains_key(k) {
             result.insert(k.clone(), v.clone());
         }
     }
@@ -538,11 +538,11 @@ mod tests {
         Yaml::Hash(scmd_btree)
     }
 
-    fn create_sample_yaml() -> Yaml {
+    fn create_sample_yaml(name_value: &str) -> Yaml {
         let mut yaml_btree = BTreeMap::new();
 
         let name = get_yaml_string("name");
-        let name_value = get_yaml_string("test");
+        let name_value = get_yaml_string(name_value);
         let subcommands_label = get_yaml_string("subcommands");
         let mut subcommands = Vec::new();
         subcommands.push(create_sample_subcommand("scmd1"));
@@ -586,7 +586,7 @@ mod tests {
     #[test]
     fn test_get_subcommand_from_yaml() {
         // Arrange
-        let yaml = create_sample_yaml();
+        let yaml = create_sample_yaml("some random value");
         let scmd_about = "This is a sample scmd";
 
         // Act
@@ -596,5 +596,21 @@ mod tests {
         let scmd_btree = subcommand.into_hash().expect("Could not cast to btree");
         let about = &scmd_btree[&get_yaml_string("about")];
         assert_eq!(about, &get_yaml_string(scmd_about));
+    }
+
+    #[test]
+    fn test_combine_scmd_yaml_override_props() {
+        // Arrange
+        let final_value = "some random value";
+        let other_value = "some other value";
+        let overrider = create_sample_yaml(final_value);
+        let overriden = create_sample_yaml(other_value);
+
+        // Act
+        let result = combine_scmd_yaml(&overrider, &overriden);
+
+        // Assert
+        assert_eq!(result["name"], get_yaml_string(final_value));
+        assert_ne!(result["name"], get_yaml_string(other_value));
     }
 }
