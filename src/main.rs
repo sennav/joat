@@ -54,24 +54,13 @@ fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> InnerContext {
     return args_context;
 }
 
-fn get_vars_context(yaml: &Yaml) -> InnerContext {
-    let mut vars_context = HashMap::new();
+fn get_vars_context(yaml: &Yaml, context: &Context) -> InnerContext {
     let vars_yaml = &yaml["vars"];
     if !vars_yaml.is_badvalue() {
-        let vars_iter = vars_yaml
-            .clone()
-            .into_hash()
-            .expect("Could not convert vars into hash");
-        for (key, value) in vars_iter {
-            let key_str = key.clone().into_string().expect("Var key should be string");
-            let value_str = value
-                .clone()
-                .into_string()
-                .expect("Var value should be string");
-            vars_context.insert(key_str, Value::from(value_str));
-        }
+        let r = yaml::get_hash_from_yaml(vars_yaml, context, true);
+        return r;
     }
-    return vars_context;
+    return HashMap::new();
 }
 
 fn get_env_context() -> InnerContext {
@@ -96,14 +85,16 @@ fn get_scmd_context(scmd_yaml: &Yaml) -> InnerContext {
 fn execute(app: App, app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {
     let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
 
-    let vars_context = get_vars_context(yaml);
-    let args_context = get_args_context(&args, &subcmd_yaml);
-    let env_context = get_env_context();
-    let scmd_context = get_scmd_context(&subcmd_yaml);
     let mut context: Context = HashMap::new();
+
+    let env_context = get_env_context();
+    context.insert(String::from("env"), env_context);
+
+    let vars_context = get_vars_context(yaml, &context);
+    let args_context = get_args_context(&args, &subcmd_yaml);
+    let scmd_context = get_scmd_context(&subcmd_yaml);
     context.insert(String::from("vars"), vars_context);
     context.insert(String::from("args"), args_context);
-    context.insert(String::from("env"), env_context);
     context.insert(String::from("scmd"), scmd_context);
 
     if app_name == "joat" && cmd_name == "init" {
