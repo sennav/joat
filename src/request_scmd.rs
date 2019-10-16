@@ -61,7 +61,7 @@ pub fn execute_request(
         .clone()
         .into_hash()
         .expect("Could not hash subcmd yaml");
-    let mut http_method: String;
+    let http_method: String;
     if subcmd_hash.contains_key(&Yaml::from_str("method")) {
         let method_template = subcmd_yaml["method"].clone().into_string().unwrap();
         http_method = template::get_compiled_template_str_with_context(&method_template, &context)
