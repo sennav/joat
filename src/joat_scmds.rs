@@ -16,7 +16,9 @@ pub fn execute_init(context: Context) {
 }
 
 pub fn execute_auto_complete(mut app: App, app_name: &str, context: Context) {
-    let selected_shell = &context["args"]["SHELL"];
+    let selected_shell = &context["args"]["SHELL"]
+        .as_str()
+        .expect("Could not convert shell argument to string");
     let shell;
     let lower_selected_shell = selected_shell.to_string().to_lowercase();
     match lower_selected_shell.as_str() {
@@ -25,7 +27,15 @@ pub fn execute_auto_complete(mut app: App, app_name: &str, context: Context) {
         "fish" => shell = Shell::Fish,
         "powershell" => shell = Shell::PowerShell,
         "elvish" => shell = Shell::Elvish,
-        _ => panic!("Unknown shell"),
+        shell => {
+            eprintln!("Shell not supported {}. Options are:", shell);
+            eprintln!("zsh");
+            eprintln!("bash");
+            eprintln!("fish");
+            eprintln!("powershell");
+            eprintln!("elvish");
+            ::std::process::exit(1);
+        }
     };
     app.gen_completions(app_name, shell, ".")
 }
