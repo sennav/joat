@@ -10,6 +10,7 @@ extern crate yaml_rust;
 use clap::{App, ArgMatches};
 use regex::Regex;
 use serde_json::value::Value;
+use serde_json::Map;
 use std::collections::HashMap;
 use std::env;
 use yaml_rust::Yaml;
@@ -22,11 +23,10 @@ mod script_scmd;
 mod template;
 mod yaml;
 
-type InnerContext = HashMap<String, Value>;
-type Context = HashMap<String, InnerContext>;
+type Context = HashMap<String, Value>;
 
-fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> InnerContext {
-    let mut args_context = HashMap::new();
+fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> Value {
+    let mut args_context = Map::new();
     for arg in subcmd_yaml["args"].clone().into_iter() {
         for a in arg.into_hash().unwrap().keys() {
             let key = a.clone().into_string().unwrap();
@@ -51,35 +51,39 @@ fn get_args_context(args: &ArgMatches, subcmd_yaml: &Yaml) -> InnerContext {
             }
         }
     }
-    return args_context;
+    return Value::Object(args_context);
 }
 
-fn get_vars_context(yaml: &Yaml, context: &Context) -> InnerContext {
+fn get_vars_context(yaml: &Yaml, context: &Context) -> Value {
     let vars_yaml = &yaml["vars"];
     if !vars_yaml.is_badvalue() {
         let r = yaml::get_hash_from_yaml(vars_yaml, context, true);
-        return r;
+        let mut m = Map::new();
+        for (key, value) in r {
+            m.insert(key, value);
+        }
+        return Value::Object(m);
     }
-    return HashMap::new();
+    return Value::Object(Map::new());
 }
 
-fn get_env_context() -> InnerContext {
-    let mut env_vars = HashMap::new();
+fn get_env_context() -> Value {
+    let mut env_vars = Map::new();
     for (key, value) in env::vars() {
         env_vars.insert(key, Value::from(value));
     }
-    return env_vars;
+    return Value::Object(env_vars);
 }
 
-fn get_scmd_context(scmd_yaml: &Yaml) -> InnerContext {
-    let mut scmd_vars = HashMap::new();
+fn get_scmd_context(scmd_yaml: &Yaml) -> Value {
+    let mut scmd_vars = Map::new();
     match scmd_yaml["scmd_config_base_path"].clone().into_string() {
         Some(s) => {
             scmd_vars.insert(String::from("scmd_config_base_path"), Value::from(s));
         }
         None => (),
     }
-    return scmd_vars;
+    return Value::Object(scmd_vars);
 }
 
 fn execute(app: App, app_name: &String, cmd_name: &str, args: &ArgMatches, yaml: &Yaml) {

@@ -62,7 +62,9 @@ pub fn execute_script(context: Context, subcmd_yaml: &Yaml, yaml: &Yaml) {
         .env(RECUSRION_COUNT_VAR_NAME, recursion_count.to_string())
         .output()
         .expect("failed to execute script");
-    if !context["args"].contains_key("quiet") {
+
+    let context_args = context["args"].as_object().unwrap();
+    if !context_args.contains_key("quiet") {
         io::stdout().write_all(&output.stdout).unwrap();
         io::stderr().write_all(&output.stderr).unwrap();
     }

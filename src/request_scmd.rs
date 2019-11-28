@@ -42,8 +42,8 @@ fn get_complete_context(
 ) -> HashMap<String, Value> {
     for (key, inner_hashmap) in general_context {
         let mut map = Map::new();
-        for (ikey, ivalue) in inner_hashmap {
-            map.insert(ikey, ivalue);
+        for (ikey, ivalue) in inner_hashmap.as_object().unwrap() {
+            map.insert(ikey.to_string(), ivalue.clone());
         }
         response_context.insert(key, Value::Object(map));
     }
@@ -115,18 +115,20 @@ pub fn execute_request(
         }
     };
 
+    let context_args = context["args"].as_object().unwrap();
+
     // Quiet
-    if context["args"].contains_key("quiet") {
+    if context_args.contains_key("quiet") {
         return;
     }
 
     // Raw output
-    if context["args"].contains_key("raw_response") {
+    if context_args.contains_key("raw_response") {
         print_response_json(&result, false);
         return;
     }
 
-    if context["args"].contains_key("template") {
+    if context_args.contains_key("template") {
         let template = context["args"]["template"].clone();
         if template == "json" {
             print_response_json(&result, true);
