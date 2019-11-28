@@ -354,7 +354,7 @@ fn override_version(app_name: &String, config: Yaml) -> Yaml {
     if app_name == env!("CARGO_PKG_NAME") {
         version = String::from(config["version"].as_str().expect("Version not defined"));
     } else {
-        let joat_version = env!("CARGO_PKG_VERSION");;
+        let joat_version = env!("CARGO_PKG_VERSION");
         let app_version = config["version"].as_str().expect("Version not defined");
         version = format!("{} (joat {})", app_version, joat_version);
     }
