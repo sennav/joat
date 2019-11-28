@@ -1,6 +1,6 @@
+use reqwest::header::HeaderMap;
 use serde_json::value::Value;
 use serde_json::Map;
-use std::collections::HashMap;
 use yaml_rust::Yaml;
 
 use crate::{http, oauth, template, yaml, Context};
@@ -25,29 +25,31 @@ fn print_response_json(result: &Value, pretty: bool) {
     }
 }
 
-fn print_response_template(template: String, app_name: &String, context: Context, result: Value) {
+fn print_response_template(
+    template: String,
+    app_name: &String,
+    mut context: Context,
+    response_body: Value,
+    headers_context: Value,
+) {
     let template_parser = template::Template::new(app_name);
-    let mut response_context = HashMap::new();
-    response_context.insert(String::from("response"), result.clone());
-    let complete_context = get_complete_context(response_context, context.clone());
+
+    context.insert(String::from("response"), response_body);
+    context.insert(String::from("response_headers"), headers_context);
     print!(
         "{}",
-        template_parser.get_compiled_template_with_context(template, complete_context)
+        template_parser.get_compiled_template_with_context(template, context)
     );
 }
 
-fn get_complete_context(
-    mut response_context: HashMap<String, Value>,
-    general_context: Context,
-) -> HashMap<String, Value> {
-    for (key, inner_hashmap) in general_context {
-        let mut map = Map::new();
-        for (ikey, ivalue) in inner_hashmap.as_object().unwrap() {
-            map.insert(ikey.to_string(), ivalue.clone());
-        }
-        response_context.insert(key, Value::Object(map));
+fn get_headers_map(headers: &HeaderMap) -> Value {
+    let mut map = Map::new();
+    for (key, value) in headers {
+        let key_str = key.as_str();
+        let value_str = value.to_str().unwrap();
+        map.insert(key_str.to_string(), Value::String(value_str.to_string()));
     }
-    response_context
+    Value::Object(map)
 }
 
 pub fn execute_request(
@@ -102,7 +104,7 @@ pub fn execute_request(
     }
 
     let mut response = http::request(&http_method, &endpoint, &headers, &body);
-    let result: Value = match response.json() {
+    let response_body: Value = match response.json() {
         Ok(r) => r,
         Err(_e) => {
             println!(
@@ -124,29 +126,37 @@ pub fn execute_request(
 
     // Raw output
     if context_args.contains_key("raw_response") {
-        print_response_json(&result, false);
+        print_response_json(&response_body, false);
         return;
     }
+
+    let headers_map = get_headers_map(response.headers());
 
     if context_args.contains_key("template") {
         let template = context["args"]["template"].clone();
         if template == "json" {
-            print_response_json(&result, true);
+            print_response_json(&response_body, true);
         } else {
             let template_str = template
                 .as_str() // avoids quotes on the string
                 .expect("Could not convert template str")
                 .to_string();
-            print_response_template(template_str, app_name, context, result);
+            print_response_template(template_str, app_name, context, response_body, headers_map);
         }
     } else if subcmd_hash.contains_key(&Yaml::from_str("response_template")) {
         let response_template = subcmd_yaml["response_template"]
             .clone()
             .into_string()
             .unwrap();
-        print_response_template(response_template, app_name, context, result);
+        print_response_template(
+            response_template,
+            app_name,
+            context,
+            response_body,
+            headers_map,
+        );
     } else {
-        print_response_json(&result, true);
+        print_response_json(&response_body, true);
         return;
     }
 }
