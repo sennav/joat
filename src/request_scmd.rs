@@ -75,6 +75,7 @@ pub fn execute_request(
     let mut headers = yaml::get_hash_from_yaml(&yaml["headers"], &context, false);
 
     let body = yaml::get_hash_from_yaml(&subcmd_yaml["body"], &context, true);
+    let form = yaml::get_hash_from_yaml(&subcmd_yaml["form"], &context, true);
 
     let query_params_yaml =
         yaml::combine_hash_yaml(&subcmd_yaml["query_params"], &yaml["query_params"]);
@@ -103,17 +104,14 @@ pub fn execute_request(
         headers.insert(header_name, Value::String(oauth_token));
     }
 
-    let mut response = http::request(&http_method, &endpoint, &headers, &body);
+    let mut response = http::request(&http_method, &endpoint, &headers, &body, &form);
     let response_body: Value = match response.json() {
         Ok(r) => r,
         Err(_e) => {
-            println!(
-                "{}",
-                response
-                    .text()
-                    .expect("Could not convert response to json or text")
-            );
-            return;
+            let response_str = response
+                .text()
+                .expect("Could not convert response to json or text");
+            Value::String(response_str)
         }
     };
 

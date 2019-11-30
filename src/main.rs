@@ -92,7 +92,14 @@ fn add_file_variables_to_context(yaml: &Yaml, mut context: Context) -> Context {
             .expect("Could not parse file template");
 
             let path = Path::new(&compiled_filepath);
-            let file_content = File::open(path).expect(&format!("File {:?} not found", path));
+            let file_content = match File::open(path) {
+                Ok(f) => f,
+                Err(e) => {
+                    eprintln!("WARN: Error reading {:?}", path);
+                    eprintln!("{:?}", e);
+                    continue;
+                }
+            };
             let file_context: Value = match serde_json::from_reader(file_content) {
                 Ok(v) => v,
                 Err(_e) => {

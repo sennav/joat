@@ -1,12 +1,11 @@
 extern crate globwalk;
 
+use crate::Context;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
 use tera::{Context as TeraContext, Error, Tera};
-
-use crate::Context;
 
 fn get_tera_context(context: &Context) -> TeraContext {
     let mut tera_context = TeraContext::new();
@@ -44,9 +43,11 @@ impl Template {
         let mut tera = Tera::parse(joat_path_str.as_str()).expect("Could not start Tera");
 
         // Add local templates
-        if Path::new("./templates/").exists() {
+        let templates_local = format!(".{}.joat/templates/", app_name);
+        if Path::new(&templates_local).exists() {
+            let templates_glob = format!(".{}.joat/templates/*.j2", app_name);
             let tera_local_templates =
-                Tera::parse("./templates/**").expect("Could not start tera with local templates");
+                Tera::parse(&templates_glob).expect("Could not start tera with local templates");
             tera.extend(&tera_local_templates).unwrap();
         }
 

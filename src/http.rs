@@ -92,6 +92,7 @@ pub fn request(
     endpoint: &String,
     headers: &HashMap<String, Value>,
     body: &HashMap<String, Value>,
+    form: &HashMap<String, Value>,
 ) -> Response {
     let client = reqwest::Client::new();
     let reqwest_method = get_method(&method);
@@ -101,7 +102,9 @@ pub fn request(
         request = request.header(&name[..], header_value);
     }
     request = request.json(&body);
-
+    if form.len() > 0 {
+        request = request.form(&form);
+    }
     let response = match request.send() {
         Ok(t) => t,
         Err(e) => {
