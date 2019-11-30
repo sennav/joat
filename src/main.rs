@@ -13,6 +13,9 @@ use serde_json::value::Value;
 use serde_json::Map;
 use std::collections::HashMap;
 use std::env;
+use std::fs;
+use std::fs::File;
+use std::path::Path;
 use yaml_rust::Yaml;
 
 mod http;
@@ -75,6 +78,36 @@ fn get_env_context() -> Value {
     return Value::Object(env_vars);
 }
 
+fn add_file_variables_to_context(yaml: &Yaml, mut context: Context) -> Context {
+    let files_yaml = &yaml["files"];
+    let mut files = Map::new();
+    if !files_yaml.is_badvalue() {
+        let files_vec = files_yaml.as_hash().expect("Files should be a hash");
+        for (filealias, filepath) in files_vec {
+            let filepath_str = filepath.as_str().expect("Filepath should be strings");
+            let compiled_filepath = template::get_compiled_template_str_with_context(
+                &filepath_str.to_string(),
+                &context,
+            )
+            .expect("Could not parse file template");
+
+            let path = Path::new(&compiled_filepath);
+            let file_content = File::open(path).expect(&format!("File {:?} not found", path));
+            let file_context: Value = match serde_json::from_reader(file_content) {
+                Ok(v) => v,
+                Err(_e) => {
+                    let file_string = fs::read_to_string(path).expect("Could not read file");
+                    Value::String(file_string)
+                }
+            };
+            let filealias_str = filealias.as_str().expect("File alias should be a string");
+            files.insert(filealias_str.to_string(), file_context);
+        }
+    }
+    context.insert(String::from("files"), Value::Object(files));
+    return context;
+}
+
 fn get_scmd_context(scmd_yaml: &Yaml) -> Value {
     let mut scmd_vars = Map::new();
     match scmd_yaml["scmd_config_base_path"].clone().into_string() {
@@ -93,6 +126,8 @@ fn execute(app: App, app_name: &String, cmd_name: &str, args: &ArgMatches, yaml:
 
     let env_context = get_env_context();
     context.insert(String::from("env"), env_context);
+
+    context = add_file_variables_to_context(&yaml, context);
 
     let vars_context = get_vars_context(yaml, &context);
     let args_context = get_args_context(&args, &subcmd_yaml);
