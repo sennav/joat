@@ -4,6 +4,7 @@ use crate::Context;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::env;
 use std::path::Path;
 use tera::{Context as TeraContext, Error, Tera};
 
@@ -42,22 +43,20 @@ impl Template {
         let joat_path_str = String::from(format!("{}/.joat.joat/templates/**", home_dir_str));
         let mut tera = Tera::parse(joat_path_str.as_str()).expect("Could not start Tera");
 
-        // Add local templates
-        let templates_local = format!(".{}.joat/templates/", app_name);
-        if Path::new(&templates_local).exists() {
-            let templates_glob = format!(".{}.joat/templates/*.j2", app_name);
-            let tera_local_templates =
-                Tera::parse(&templates_glob).expect("Could not start tera with local templates");
-            tera.extend(&tera_local_templates).unwrap();
+        // Add templates from config folders
+        let current_path = env::current_dir().expect("Could not find current dir");
+        let mut ancestors = current_path.ancestors();
+        while let Some(path) = ancestors.next() {
+            let current_dir = path.to_str().expect("Could not convert path to string");
+            let config_base_path_str = format!("{}/.{}.joat/templates/", current_dir, app_name);
+            let config_path = Path::new(&config_base_path_str);
+            if config_path.exists() && config_path.is_dir() {
+                let templates_glob = format!("{}**/*.j2", config_base_path_str);
+                let tera_templates = Tera::parse(&templates_glob)
+                    .expect("Could not start tera with local templates");
+                tera.extend(&tera_templates).unwrap();
+            }
         }
-
-        // Add home tamplates
-        let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
-        let home_path_str =
-            String::from(format!("{}/.{}.joat/templates/**", home_dir_str, app_name));
-        let tera_home_templates =
-            Tera::parse(home_path_str.as_str()).expect("Could not start Tera");
-        tera.extend(&tera_home_templates).unwrap();
 
         tera.build_inheritance_chains().unwrap();
 

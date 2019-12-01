@@ -3,9 +3,9 @@ use serde_json::map::Map;
 use serde_json::value::Value;
 use serde_json::Number;
 use std::collections::{BTreeMap, HashMap};
-use std::fs;
 use std::path::Path;
 use std::str::FromStr;
+use std::{env, fs};
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::Context;
@@ -108,35 +108,42 @@ fn add_subcommands_path(config: Yaml, path: &String) -> Yaml {
     Yaml::Hash(config_bmap.clone())
 }
 
-fn get_config_from(cmd_name: &String, base_dir: &String) -> Option<Yaml> {
-    let local_path = String::from(format!("{}{}.yml", base_dir, cmd_name));
+fn get_yaml_from(config_file_path: String, base_path: String) -> Yaml {
+    let local_config =
+        fs::read_to_string(config_file_path.clone()).expect("Could not find configuration file");
+    let local_yaml =
+        &YamlLoader::load_from_str(&local_config).expect("failed to load YAML file")[0];
+    add_subcommands_path(local_yaml.clone(), &base_path)
+}
+
+fn get_config_from(app_name: &String, base_dir: &String) -> Option<Yaml> {
+    let config_path = String::from(format!("{}/{}.joat/", base_dir, app_name));
+    let local_path = String::from(format!("{}{}.yml", config_path, app_name));
     if Path::new(&local_path).exists() {
-        let local_config =
-            fs::read_to_string(local_path.clone()).expect("Could not find configuration file");
-        let local_yaml =
-            &YamlLoader::load_from_str(&local_config).expect("failed to load YAML file")[0];
-        let config = add_subcommands_path(local_yaml.clone(), base_dir);
+        let config = get_yaml_from(local_path, config_path);
+        return Some(config);
+    }
+    // To ease development
+    let alternative_path = String::from(format!("{}/{}.yml", base_dir, app_name));
+    if Path::new(&alternative_path).exists() {
+        let config = get_yaml_from(alternative_path, base_dir.to_string());
         return Some(config);
     }
     return None;
 }
 
-fn get_home_config(cmd_name: &String) -> Option<Yaml> {
-    let home_dir_path = match dirs::home_dir() {
-        Some(h) => h,
-        _ => return None,
-    };
-    let home_dir_str = home_dir_path.into_os_string().into_string().unwrap();
-    let home_path_str = String::from(format!("{}/.{}.joat/", home_dir_str, cmd_name));
-    return get_config_from(&cmd_name, &home_path_str);
-}
-
-fn get_local_config(cmd_name: &String) -> Option<Yaml> {
-    let prod_path = String::from(format!(".{}.joat/", cmd_name));
-    match get_config_from(&cmd_name, &prod_path) {
-        Some(c) => Some(c),
-        None => get_config_from(&cmd_name, &String::from("./")),
+fn get_config_vec(app_name: &String) -> Vec<Yaml> {
+    let current_path = env::current_dir().expect("Could not find current dir");
+    let mut ancestors = current_path.ancestors();
+    let mut config_files = Vec::new();
+    while let Some(path) = ancestors.next() {
+        let current_dir = path.to_str().expect("Could not convert path to string");
+        match get_config_from(app_name, &current_dir.to_string()) {
+            Some(c) => config_files.push(c),
+            None => continue,
+        }
     }
+    config_files
 }
 
 fn get_yaml_string(rust_str: &str) -> Yaml {
@@ -383,13 +390,22 @@ fn create_default_config() {
 }
 
 pub fn get_yaml_config(app_name: &String) -> Yaml {
-    let local_config = get_local_config(app_name);
-    let home_config = get_home_config(app_name);
-    let partial_config = match (local_config, home_config) {
-        (Some(l), Some(h)) => combine_scmd_yaml(&l, &h),
-        (Some(l), None) => l,
-        (None, Some(h)) => h,
-        (None, None) => {
+    let config_vec = get_config_vec(app_name);
+    let mut combined_config: Option<Yaml> = None;
+    for current_config in config_vec {
+        match combined_config {
+            Some(c) => {
+                combined_config = Some(combine_scmd_yaml(&current_config, &c));
+            }
+            None => {
+                combined_config = Some(current_config);
+            }
+        }
+    }
+
+    let partial_config = match combined_config {
+        Some(c) => c,
+        None => {
             if app_name == "joat" {
                 create_default_config();
                 return get_yaml_config(&app_name);
