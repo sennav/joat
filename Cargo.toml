@@ -1,6 +1,6 @@
 [package]
 name = "joat"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Vinicius <senna.vmd@gmail.com>"]
 edition = "2018"
 description = "Jack of all trades - CLI tools for REST APIs"
