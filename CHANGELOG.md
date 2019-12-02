@@ -1,3 +1,8 @@
+# v0.0.4
+
+- Fix typo in config retrieval
+- Fix merge priority of configs
+
 # v0.0.3
 
 - Support non json response as text
@@ -12,11 +17,9 @@
 - Release script
 - Add changelog
 
-
 # v0.0.2
 
 - Bugfixes
-
 
 # v0.0.1
 
