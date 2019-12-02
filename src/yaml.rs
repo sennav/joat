@@ -117,7 +117,7 @@ fn get_yaml_from(config_file_path: String, base_path: String) -> Yaml {
 }
 
 fn get_config_from(app_name: &String, base_dir: &String) -> Option<Yaml> {
-    let config_path = String::from(format!("{}/{}.joat/", base_dir, app_name));
+    let config_path = String::from(format!("{}/.{}.joat/", base_dir, app_name));
     let local_path = String::from(format!("{}{}.yml", config_path, app_name));
     if Path::new(&local_path).exists() {
         let config = get_yaml_from(local_path, config_path);
@@ -395,7 +395,7 @@ pub fn get_yaml_config(app_name: &String) -> Yaml {
     for current_config in config_vec {
         match combined_config {
             Some(c) => {
-                combined_config = Some(combine_scmd_yaml(&current_config, &c));
+                combined_config = Some(combine_scmd_yaml(&c, &current_config));
             }
             None => {
                 combined_config = Some(current_config);
