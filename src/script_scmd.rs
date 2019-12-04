@@ -1,3 +1,4 @@
+use log::info;
 use std::env;
 use std::io::{self, Write};
 use std::process::Command;
@@ -53,6 +54,7 @@ pub fn execute_script(context: Context, subcmd_yaml: &Yaml, yaml: &Yaml) {
         .expect("Could not convert script to string");
     let script = template::get_compiled_template_str_with_context(&script_string, &context)
         .expect(format!("Could not parse script template {:?}", script_string).as_str());
+    info!("Executing script\n {}", script);
     let columns = get_terminal_width();
     let recursion_count = check_recursion_count(yaml);
     let output = Command::new("bash")

@@ -1,3 +1,4 @@
+use log::{debug, info};
 use reqwest::Method;
 use reqwest::Response;
 use serde_json::value::Value;
@@ -105,6 +106,7 @@ pub fn request(
     if form.len() > 0 {
         request = request.form(&form);
     }
+    info!("{:?}", request);
     let response = match request.send() {
         Ok(t) => t,
         Err(e) => {
@@ -113,6 +115,7 @@ pub fn request(
             panic!("Failed request");
         }
     };
+    debug!("Response {:?}", response);
     return response;
 }
 

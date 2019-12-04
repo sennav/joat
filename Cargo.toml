@@ -25,3 +25,5 @@ base64 = "0.9"
 oauth2 = { version = "3.0.0-alpha.3" }
 rand = "0.6"
 url = "1.0"
+log = "0.4.8"
+env_logger = "0.7.1"

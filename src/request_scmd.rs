@@ -1,3 +1,4 @@
+use log::debug;
 use reqwest::header::HeaderMap;
 use serde_json::value::Value;
 use serde_json::Map;
@@ -114,6 +115,7 @@ pub fn execute_request(
             Value::String(response_str)
         }
     };
+    debug!("{:?}", response_body);
 
     let context_args = context["args"].as_object().unwrap();
 

@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate dirs;
+extern crate log;
 extern crate regex;
 extern crate reqwest;
 extern crate serde;
@@ -8,6 +9,7 @@ extern crate tera;
 extern crate yaml_rust;
 
 use clap::{App, ArgMatches};
+use log::debug;
 use regex::Regex;
 use serde_json::value::Value;
 use serde_json::Map;
@@ -171,6 +173,8 @@ fn format_cmd_name(cmd_name: &String) -> String {
 }
 
 fn main() {
+    env_logger::init();
+    debug!("Joat started");
     let args: Vec<String> = env::args().collect();
     let app_name = format_cmd_name(&args[0]);
     let config_yaml = yaml::get_yaml_config(&app_name);
