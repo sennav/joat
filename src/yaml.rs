@@ -150,58 +150,41 @@ fn get_yaml_string(rust_str: &str) -> Yaml {
     Yaml::String(String::from(rust_str))
 }
 
-fn get_template_arg_options() -> BTreeMap<Yaml, Yaml> {
-    let mut template_options = BTreeMap::new();
+fn get_arg_option(short: &str, long: &str, help: &str, takes_value: bool) -> BTreeMap<Yaml, Yaml> {
+    let mut template_option = BTreeMap::new();
 
-    let short = get_yaml_string("short");
-    let short_value = get_yaml_string("t");
-    let long = get_yaml_string("long");
-    let long_value = get_yaml_string("template");
-    let help = get_yaml_string("help");
-    let help_value = get_yaml_string("Change the output template");
-    let takes_value = get_yaml_string("takes_value");
-    let takes_value_value = Yaml::Boolean(true);
+    let short_yaml = get_yaml_string("short");
+    let short_value = get_yaml_string(short);
+    let long_yaml = get_yaml_string("long");
+    let long_value = get_yaml_string(long);
+    let help_yaml = get_yaml_string("help");
+    let help_value = get_yaml_string(help);
+    let takes_value_yaml = get_yaml_string("takes_value");
+    let takes_value_value = Yaml::Boolean(takes_value);
 
-    template_options.insert(short, short_value);
-    template_options.insert(long, long_value);
-    template_options.insert(help, help_value);
-    template_options.insert(takes_value, takes_value_value);
+    template_option.insert(short_yaml, short_value);
+    template_option.insert(long_yaml, long_value);
+    template_option.insert(help_yaml, help_value);
+    template_option.insert(takes_value_yaml, takes_value_value);
 
-    template_options
+    template_option
 }
 
-fn get_quiet_arg_options() -> BTreeMap<Yaml, Yaml> {
-    let mut quiet_options = BTreeMap::new();
-
-    let short = get_yaml_string("short");
-    let short_value = get_yaml_string("q");
-    let long = get_yaml_string("long");
-    let long_value = get_yaml_string("quiet");
-    let help = get_yaml_string("help");
-    let help_value = get_yaml_string("Do not output");
-
-    quiet_options.insert(short, short_value);
-    quiet_options.insert(long, long_value);
-    quiet_options.insert(help, help_value);
-
-    quiet_options
+fn get_template_arg_option() -> BTreeMap<Yaml, Yaml> {
+    get_arg_option("t", "template", "Change the output template", true)
 }
 
-fn get_raw_arg_options() -> BTreeMap<Yaml, Yaml> {
-    let mut raw_options = BTreeMap::new();
+fn get_quiet_arg_option() -> BTreeMap<Yaml, Yaml> {
+    get_arg_option("q", "quiet", "Do not output", false)
+}
 
-    let short = get_yaml_string("short");
-    let short_value = get_yaml_string("R");
-    let long = get_yaml_string("long");
-    let long_value = get_yaml_string("raw_response");
-    let help = get_yaml_string("help");
-    let help_value = get_yaml_string("Do not parse response as template");
-
-    raw_options.insert(short, short_value);
-    raw_options.insert(long, long_value);
-    raw_options.insert(help, help_value);
-
-    raw_options
+fn get_raw_arg_option() -> BTreeMap<Yaml, Yaml> {
+    get_arg_option(
+        "R",
+        "raw_response",
+        "Do not parse response with template",
+        false,
+    )
 }
 
 fn get_arg_yaml(name: &str, options: BTreeMap<Yaml, Yaml>) -> Yaml {
@@ -336,18 +319,18 @@ fn add_default_options(config: Yaml) -> Yaml {
             let script_yaml = get_yaml_string("script");
             if !scmd_options_clone.contains_key(&script_yaml) {
                 // Only non script subcommands get the template option
-                let template_options = get_template_arg_options();
-                check_existing_options(args.clone(), &template_options);
-                args.push(get_arg_yaml("template", template_options));
+                let template_option = get_template_arg_option();
+                check_existing_options(args.clone(), &template_option);
+                args.push(get_arg_yaml("template", template_option));
             }
 
-            let quiet_options = get_quiet_arg_options();
-            check_existing_options(args.clone(), &quiet_options);
-            args.push(get_arg_yaml("quiet", quiet_options));
+            let quiet_option = get_quiet_arg_option();
+            check_existing_options(args.clone(), &quiet_option);
+            args.push(get_arg_yaml("quiet", quiet_option));
 
-            let raw_options = get_raw_arg_options();
-            check_existing_options(args.clone(), &raw_options);
-            args.push(get_arg_yaml("raw_response", raw_options));
+            let raw_option = get_raw_arg_option();
+            check_existing_options(args.clone(), &raw_option);
+            args.push(get_arg_yaml("raw_response", raw_option));
         }
     }
     let auto_complete_cmd = add_auto_complete_cmd();
