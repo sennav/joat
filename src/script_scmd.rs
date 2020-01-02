@@ -1,7 +1,6 @@
 use log::info;
 use std::env;
-use std::io::{self, Write};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use terminal_size::{terminal_size, Height, Width};
 use yaml_rust::Yaml;
 
@@ -57,19 +56,25 @@ pub fn execute_script(context: Context, subcmd_yaml: &Yaml, yaml: &Yaml) {
     info!("Executing script\n {}", script);
     let columns = get_terminal_width();
     let recursion_count = check_recursion_count(yaml);
-    let output = Command::new("bash")
+    let mut command = Command::new("bash");
+    command
         .arg("-c")
         .arg(script)
         .env(COLUMNS_ENV_VAR_NAME, columns.to_string())
-        .env(RECUSRION_COUNT_VAR_NAME, recursion_count.to_string())
-        .output()
-        .expect("failed to execute script");
+        .env(RECUSRION_COUNT_VAR_NAME, recursion_count.to_string());
 
     let context_args = context["args"].as_object().unwrap();
-    if !context_args.contains_key("quiet") {
-        io::stdout().write_all(&output.stdout).unwrap();
-        io::stderr().write_all(&output.stderr).unwrap();
+    if context_args.contains_key("quiet") {
+        let output = command.output().expect("Failed to execute script");
+        ::std::process::exit(output.status.code().expect("Unknown exit code"));
     }
 
-    ::std::process::exit(output.status.code().expect("Unknown exit code"));
+    let mut cmd = command
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .expect("Failed to execute script");
+
+    let status = cmd.wait().expect("Failed to wait end of script");
+    ::std::process::exit(status.code().expect("Unknown exit code"));
 }
