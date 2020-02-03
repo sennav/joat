@@ -4,14 +4,12 @@ use reqwest::Response;
 use serde_json::value::Value;
 use std::collections::HashMap;
 use std::vec::Vec;
-use yaml_rust::Yaml;
 
-use crate::{template, yaml, Context};
+use crate::{template, Context};
 
-fn get_complete_endpoint(base_endpoint: &Yaml, path_yaml: &Yaml) -> String {
-    let mut endpoint = yaml::get_string_from_yaml(base_endpoint);
-    let path_str = yaml::get_string_from_yaml(path_yaml);
-    endpoint.push_str(&path_str);
+fn get_complete_endpoint(base_endpoint: &str, path: &str) -> String {
+    let mut endpoint = String::from(base_endpoint);
+    endpoint.push_str(&path);
     return endpoint;
 }
 
@@ -54,13 +52,12 @@ fn get_endpoint_with_qp(
 }
 
 pub fn get_endpoint(
-    cmd_name: &str,
+    endpoint: &str,
+    path: &str,
     context: &Context,
-    yaml: &Yaml,
     query_params: &HashMap<String, Value>,
 ) -> String {
-    let subcmd_yaml = yaml::get_subcommand_from_yaml(cmd_name, yaml);
-    let raw_endpoint = get_complete_endpoint(&yaml["base_endpoint"], &subcmd_yaml["path"]);
+    let raw_endpoint = get_complete_endpoint(endpoint, path);
     let endpoint_with_qp = get_endpoint_with_qp(raw_endpoint, query_params, context);
     let parsed_endpoint =
         template::get_compiled_template_str_with_context(&endpoint_with_qp, &context)
@@ -122,13 +119,12 @@ pub fn request(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
 
     #[test]
     fn test_get_string_from_yaml() {
         // Arrange
-        let base_endpoint = Yaml::String("http://example.com".to_string());
-        let path = Yaml::String("/path".to_string());
+        let base_endpoint = "http://example.com".to_string();
+        let path = "/path".to_string();
 
         // Act
         let endpoint = get_complete_endpoint(&base_endpoint, &path);
@@ -180,58 +176,18 @@ mod tests {
         assert_eq!("http://example.com/path", endpoint);
     }
 
-    fn get_yaml_string(rust_str: &str) -> Yaml {
-        Yaml::String(String::from(rust_str))
-    }
-
-    fn create_sample_subcommand(name: &str) -> Yaml {
-        let mut scmd_btree = BTreeMap::new();
-        let mut scmd_options_btree = BTreeMap::new();
-
-        let name = get_yaml_string(name);
-        let about = get_yaml_string("about");
-        let about_value = get_yaml_string("This is a sample scmd");
-
-        let path = get_yaml_string("path");
-        let path_value = get_yaml_string("path/to/resource");
-
-        scmd_options_btree.insert(about, about_value);
-        scmd_options_btree.insert(path, path_value);
-        scmd_btree.insert(name, Yaml::Hash(scmd_options_btree));
-
-        Yaml::Hash(scmd_btree)
-    }
-
-    fn create_sample_yaml() -> Yaml {
-        let mut yaml_btree = BTreeMap::new();
-
-        let name = get_yaml_string("name");
-        let name_value = get_yaml_string("test");
-        let base_endpoint = get_yaml_string("base_endpoint");
-        let base_endpoint_value = get_yaml_string("http://example.com/");
-        let subcommands_label = get_yaml_string("subcommands");
-        let mut subcommands = Vec::new();
-        subcommands.push(create_sample_subcommand("scmd1"));
-        subcommands.push(create_sample_subcommand("scmd2"));
-
-        yaml_btree.insert(name, name_value);
-        yaml_btree.insert(base_endpoint, base_endpoint_value);
-        yaml_btree.insert(subcommands_label, Yaml::Array(subcommands));
-        Yaml::Hash(yaml_btree)
-    }
-
     #[test]
     fn test_get_endpoint() {
         // Arrange
-        let cmd_name = String::from("scmd2");
+        let base_endpoint = "http://example.com/";
+        let path = "path/to/resource";
         let context = HashMap::new();
-        let yaml = create_sample_yaml();
         let query_params = HashMap::new();
 
         // Act
-        let endpoint = get_endpoint(&cmd_name, &context, &yaml, &query_params);
+        let endpoint = get_endpoint(&base_endpoint, &path, &context, &query_params);
 
         // Assert
-        assert_eq!("http://example.com/path/to/resource", endpoint);
+        assert_eq!(endpoint, format!("{}{}", base_endpoint, path));
     }
 }

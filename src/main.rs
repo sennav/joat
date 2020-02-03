@@ -159,7 +159,7 @@ fn execute(app: App, app_name: &String, cmd_name: &str, args: &ArgMatches, yaml:
     if !script.is_badvalue() {
         script_scmd::execute_script(context, &subcmd_yaml, &yaml);
     } else {
-        request_scmd::execute_request(&app_name, &cmd_name, &yaml, &subcmd_yaml, context);
+        request_scmd::execute_request(&app_name, &yaml, &subcmd_yaml, context);
     }
 }
 

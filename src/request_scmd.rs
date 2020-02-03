@@ -53,13 +53,25 @@ fn get_headers_map(headers: &HeaderMap) -> Value {
     Value::Object(map)
 }
 
-pub fn execute_request(
-    app_name: &String,
-    cmd_name: &str,
-    yaml: &Yaml,
-    subcmd_yaml: &Yaml,
-    context: Context,
-) {
+fn get_base_endpoint(yaml: &Yaml, subcmd_yaml: &Yaml) -> String {
+    let err = "Endpoint should be a string";
+    match subcmd_yaml["base_endpoint"].is_badvalue() {
+        true => yaml["base_endpoint"].as_str().expect(err).to_string(),
+        false => subcmd_yaml["base_endpoint"]
+            .as_str()
+            .expect(err)
+            .to_string(),
+    }
+}
+
+fn get_path(subcmd_yaml: &Yaml) -> String {
+    subcmd_yaml["path"]
+        .as_str()
+        .expect("Path should be a string")
+        .to_string()
+}
+
+pub fn execute_request(app_name: &String, yaml: &Yaml, subcmd_yaml: &Yaml, context: Context) {
     let subcmd_hash = subcmd_yaml
         .clone()
         .into_hash()
@@ -82,7 +94,9 @@ pub fn execute_request(
         yaml::combine_hash_yaml(&subcmd_yaml["query_params"], &yaml["query_params"]);
     let query_params = yaml::get_hash_from_yaml(&query_params_yaml, &context, false);
 
-    let endpoint = http::get_endpoint(&cmd_name, &context, &yaml, &query_params);
+    let base_endpoint = get_base_endpoint(&yaml, &subcmd_yaml);
+    let path = get_path(&subcmd_yaml);
+    let endpoint = http::get_endpoint(&base_endpoint, &path, &context, &query_params);
 
     let oauth_yaml = &yaml["oauth"];
     if !oauth_yaml.is_badvalue() {
