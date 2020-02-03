@@ -104,7 +104,7 @@ pub fn execute_request(
             get_parsed_yaml_key("header_key", &oauth_yaml, "Missing header_key", &context);
         headers.insert(header_name, Value::String(oauth_token));
     }
-
+    debug!("Request Body {:?}", body);
     let mut response = http::request(&http_method, &endpoint, &headers, &body, &form);
     let response_body: Value = match response.json() {
         Ok(r) => r,
