@@ -1,3 +1,11 @@
+# v0.0.5
+
+- Allow request subcommands to override the base endpoint
+- Improve debugging messages
+- Stream stdout and stderr when executing scripts
+- Internal refactoring
+- Add rust logging support
+
 # v0.0.4
 
 - Fix typo in config retrieval
