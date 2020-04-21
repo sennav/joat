@@ -95,11 +95,16 @@ pub fn request(
     let client = reqwest::Client::new();
     let reqwest_method = get_method(&method);
     let mut request = client.request(reqwest_method, endpoint);
+    debug!("headers dict {:?}", headers);
     for (name, value) in headers.iter() {
         let header_value = get_string_from_value(value);
         request = request.header(&name[..], header_value);
     }
-    request = request.json(&body);
+
+    if body.len() > 0 {
+        request = request.json(&body);
+    }
+
     if form.len() > 0 {
         request = request.form(&form);
     }

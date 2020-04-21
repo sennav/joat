@@ -86,6 +86,10 @@ pub fn execute_request(app_name: &String, yaml: &Yaml, subcmd_yaml: &Yaml, conte
     }
 
     let mut headers = yaml::get_hash_from_yaml(&yaml["headers"], &context, false);
+    let scmd_headers = yaml::get_hash_from_yaml(&subcmd_yaml["headers"], &context, false);
+    for (key, value) in scmd_headers {
+        headers.insert(key, value);
+    }
 
     let body = yaml::get_hash_from_yaml(&subcmd_yaml["body"], &context, true);
     let form = yaml::get_hash_from_yaml(&subcmd_yaml["form"], &context, true);
@@ -119,6 +123,7 @@ pub fn execute_request(app_name: &String, yaml: &Yaml, subcmd_yaml: &Yaml, conte
         headers.insert(header_name, Value::String(oauth_token));
     }
     debug!("Request Body {:?}", body);
+    debug!("Request Form {:?}", form);
     let mut response = http::request(&http_method, &endpoint, &headers, &body, &form);
     let response_body: Value = match response.json() {
         Ok(r) => r,
