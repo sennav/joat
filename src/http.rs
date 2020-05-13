@@ -3,6 +3,7 @@ use reqwest::Method;
 use reqwest::Response;
 use serde_json::value::Value;
 use std::collections::HashMap;
+use std::time::Duration;
 use std::vec::Vec;
 
 use crate::{template, Context};
@@ -91,8 +92,9 @@ pub fn request(
     headers: &HashMap<String, Value>,
     body: &HashMap<String, Value>,
     form: &HashMap<String, Value>,
+    timeout: Option<Duration>,
 ) -> Response {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder().timeout(timeout).build().unwrap();
     let reqwest_method = get_method(&method);
     let mut request = client.request(reqwest_method, endpoint);
     debug!("headers dict {:?}", headers);

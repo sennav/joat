@@ -2,6 +2,7 @@ use log::debug;
 use reqwest::header::HeaderMap;
 use serde_json::value::Value;
 use serde_json::Map;
+use std::time::Duration;
 use yaml_rust::Yaml;
 
 use crate::{http, oauth, template, yaml, Context};
@@ -124,7 +125,26 @@ pub fn execute_request(app_name: &String, yaml: &Yaml, subcmd_yaml: &Yaml, conte
     }
     debug!("Request Body {:?}", body);
     debug!("Request Form {:?}", form);
-    let mut response = http::request(&http_method, &endpoint, &headers, &body, &form);
+    let timeout_duration: Option<Duration>;
+    if subcmd_hash.contains_key(&Yaml::from_str("timeout")) {
+        let timeout_secs = subcmd_yaml["timeout"]
+            .clone()
+            .into_string()
+            .unwrap()
+            .parse::<u64>()
+            .unwrap();
+        timeout_duration = Some(Duration::new(timeout_secs, 0));
+    } else {
+        timeout_duration = None;
+    }
+    let mut response = http::request(
+        &http_method,
+        &endpoint,
+        &headers,
+        &body,
+        &form,
+        timeout_duration,
+    );
     let response_body: Value = match response.json() {
         Ok(r) => r,
         Err(_e) => {
