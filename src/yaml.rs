@@ -1,9 +1,10 @@
 use crate::template;
+use log::debug;
 use serde_json::map::Map;
 use serde_json::value::Value;
 use serde_json::Number;
 use std::collections::{BTreeMap, HashMap};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{env, fs};
 use yaml_rust::{Yaml, YamlLoader};
@@ -132,16 +133,26 @@ fn get_config_from(app_name: &String, base_dir: &String) -> Option<Yaml> {
     return None;
 }
 
-fn get_config_vec(app_name: &String) -> Vec<Yaml> {
-    let current_path = env::current_dir().expect("Could not find current dir");
-    let mut ancestors = current_path.ancestors();
+fn get_config_vec_from_path(app_name: &String, path: &PathBuf) -> Vec<Yaml> {
+    let mut ancestors = path.ancestors();
     let mut config_files = Vec::new();
     while let Some(path) = ancestors.next() {
         let current_dir = path.to_str().expect("Could not convert path to string");
+        debug!("Searching config file in {:?}", current_dir);
         match get_config_from(app_name, &current_dir.to_string()) {
             Some(c) => config_files.push(c),
             None => continue,
         }
+    }
+    config_files
+}
+
+fn get_config_vec(app_name: &String) -> Vec<Yaml> {
+    let current_path = env::current_dir().expect("Could not find current dir");
+    let config_files = get_config_vec_from_path(app_name, &current_path);
+    if config_files.is_empty() {
+        let home_dir = dirs::home_dir().expect("No home folder");
+        return get_config_vec_from_path(app_name, &home_dir);
     }
     config_files
 }
@@ -375,6 +386,7 @@ fn create_default_config() {
 pub fn get_yaml_config(app_name: &String) -> Yaml {
     let config_vec = get_config_vec(app_name);
     let mut combined_config: Option<Yaml> = None;
+    debug!("Config vec {:?}", config_vec);
     for current_config in config_vec {
         match combined_config {
             Some(c) => {
@@ -451,7 +463,7 @@ fn get_value_from_yaml_string(yaml_str: &String, context: &Context) -> Option<Va
     Some(value)
 }
 
-fn get_value_from_yaml(yaml: &Yaml, context: &Context) -> Option<Value> {
+pub fn get_value_from_yaml(yaml: &Yaml, context: &Context) -> Option<Value> {
     match yaml {
         Yaml::Hash(y) => Some(get_value_from_yaml_hash(y, context)),
         Yaml::Array(y) => Some(get_value_from_yaml_array(y, context)),

@@ -17,11 +17,15 @@ subcommands:
                 help: Project name
                 required: true
         script: |
+            set -e
             PROJECT_NAME="{{args.PROJECT_NAME}}"
-            regex="[a-zA-Z0-9_]*\/\.{0,1}([a-zA-Z0-9_]*)[.joat]{0,1}"
+            regex="[a-zA-Z0-9_]*\/\.{0,1}([a-zA-Z0-9_]*)((\.joat){0,1})"
             NEW_COMMAND_NAME=$([[ $PROJECT_NAME =~ $regex ]] && echo "${BASH_REMATCH[1]}")
+            NEW_COMMAND_REPO_NAME=$([[ $PROJECT_NAME =~ $regex ]] && echo "${BASH_REMATCH[1]}${BASH_REMATCH[2]}")
             curl -s "https://github.com/$PROJECT_NAME/archive/master.zip" -L -o temp.zip
             unzip -q temp.zip -d "$HOME/.${NEW_COMMAND_NAME}.joat"
+            mv $HOME/.${NEW_COMMAND_NAME}.joat/$NEW_COMMAND_REPO_NAME-master/* $HOME/.${NEW_COMMAND_NAME}.joat/
+            rm -rf "$HOME/.${NEW_COMMAND_NAME}.joat/$NEW_COMMAND_REPO_NAME-master"
             rm temp.zip
             JOAT_BIN_PATH=$(which joat)
             BIN_PATH=$(which joat | sed 's/joat$//')
