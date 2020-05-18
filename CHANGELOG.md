@@ -1,3 +1,10 @@
+# v0.0.6
+
+- Default timeout is None, configurable per scmd
+- Search for config files in home folder when None is available
+- Support headers per subcommand
+- Do not insert body on POST requests if not specified
+
 # v0.0.5
 
 - Allow request subcommands to override the base endpoint
@@ -32,3 +39,4 @@
 # v0.0.1
 
 - Initial version
+

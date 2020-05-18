@@ -1,5 +1,5 @@
 name: joat
-version: "0.0.5"
+version: "0.0.6"
 author: Vinicius <senna.vmd@gmail.com>
 about: Jack of all trades - CLI tools for REST APIs
 subcommands:
