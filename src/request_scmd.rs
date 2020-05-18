@@ -125,18 +125,14 @@ pub fn execute_request(app_name: &String, yaml: &Yaml, subcmd_yaml: &Yaml, conte
     }
     debug!("Request Body {:?}", body);
     debug!("Request Form {:?}", form);
-    let timeout_duration: Option<Duration>;
-    if subcmd_hash.contains_key(&Yaml::from_str("timeout")) {
-        let timeout_secs = subcmd_yaml["timeout"]
-            .clone()
-            .into_string()
-            .unwrap()
-            .parse::<u64>()
-            .unwrap();
-        timeout_duration = Some(Duration::new(timeout_secs, 0));
-    } else {
-        timeout_duration = None;
-    }
+    let timeout_duration_value = yaml::get_value_from_yaml(&subcmd_yaml["timeout"], &context);
+    let timeout_duration = match timeout_duration_value {
+        Some(v) => match v.as_u64() {
+            Some(n) => Some(Duration::new(n, 0)),
+            _ => None,
+        },
+        _ => None,
+    };
     let mut response = http::request(
         &http_method,
         &endpoint,
