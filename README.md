@@ -31,7 +31,7 @@ As this is work in progress there's no packaging of the binaries, it's necessary
 To do that you'll need [rust's tools](https://www.rust-lang.org/tools/install) and execute this:
 
 ```bash
-cargo install joat
+cargo install --locked joat
 ```
 
 Joat is not very useful in itself, so you have to create an extension.
